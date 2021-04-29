@@ -108,7 +108,7 @@ function run() {
             else if (github.context.payload.issue != null) {
                 issue_number = github.context.payload.issue.number;
             }
-            if (!issue_number) {
+            if (!issue_number && context.eventName !== 'push') {
                 const values = Object.keys(github.context.payload).map(key => github.context.payload[key]);
                 const commaJoinedValues = values.join(',');
                 core.debug(commaJoinedValues);
