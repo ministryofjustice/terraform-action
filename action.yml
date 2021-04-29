@@ -1,11 +1,21 @@
-name: 'Your name here'
-description: 'Provide a description here'
-author: 'Your name or organization here'
+name: 'Terraform Action'
+description: 'Validate, Plan and Deploy Terraform Code'
+author: 'Ministry Of Justice'
 inputs:
-  milliseconds: # change this
+  github-token:
     required: true
-    description: 'input description here'
-    default: 'default value if applicable'
+    description: 'Github Token should just generally be secrets.GITHUB_TOKEN'
+  terraform-output-as-comment:
+    required: false
+    default: 'true'
+    description: 'If set to true, the plan and apply outputs will be added as a comment to the pr'
+  validate:
+    required: false
+    default: 'true'
+    description: 'If set to true, it will run terraform validate on the working-directory'
+  working-directory:
+    required: false
+    description: 'Directory for the Terraform files, if not specified it will run from current directory'
 runs:
   using: 'node12'
   main: 'dist/index.js'
