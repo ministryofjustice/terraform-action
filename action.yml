@@ -3,7 +3,7 @@ description: 'Validate, Plan and Deploy Terraform Code'
 author: 'Ministry Of Justice'
 inputs:
   github-token:
-    required: true
+    required: false
     description: 'Github Token should just generally be secrets.GITHUB_TOKEN'
   terraform-output-as-comment:
     required: false

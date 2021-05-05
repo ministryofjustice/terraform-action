@@ -34,7 +34,7 @@ async function run(): Promise<void> {
       options.cwd = workingDirectory
     }
 
-    if (!issue_number) {
+    if (!issue_number || !githubToken) {
       comment = false
     }
 

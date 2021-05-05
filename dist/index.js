@@ -63,7 +63,7 @@ function run() {
             if (workingDirectory.length !== -1) {
                 options.cwd = workingDirectory;
             }
-            if (!issue_number) {
+            if (!issue_number || !githubToken) {
                 comment = false;
             }
             //Start of Incantation
