@@ -84,7 +84,7 @@ function run() {
             if (comment) {
                 core.info('Add Plan Output as a Comment to PR');
                 if (github.context.eventName === 'push') {
-                    premessage = 'Plan Output before Apply\n';
+                    premessage = 'Output from Terraform plan before Apply\n';
                 }
                 yield addComment(issue_number, premessage, output, githubToken, github.context, false);
             }
@@ -94,7 +94,7 @@ function run() {
                 yield exec.exec(terraformPath, ['apply', 'plan', '-no-color'], options);
                 if (comment) {
                     core.info('Add Apply Output as a Comment to PR');
-                    yield addComment(issue_number, 'Output From Apply\n', output, githubToken, github.context, true);
+                    yield addComment(issue_number, 'Output From Terraform Apply\n', output, githubToken, github.context, true);
                 }
             }
             //Incantation completed, we have successfully summoned the terraform daemon.
@@ -108,31 +108,34 @@ function run() {
             var _a, _b, _c, _d;
             let issue_number;
             core.debug(`Event Name: ${github.context.eventName}`);
-            if (((_a = github.context.payload) === null || _a === void 0 ? void 0 : _a.pull_request) != null) {
-                if (core.isDebug()) {
-                    core.debug('Get Issue Number off pull request payload');
-                    core.debug(JSON.stringify(github.context.payload));
+            //The event when the pr is merged is actually push to the branch you are merging with, generally main/master˝
+            if (github.context.eventName === 'pull_request' || github.context.eventName === 'push') {
+                if (((_a = github.context.payload) === null || _a === void 0 ? void 0 : _a.pull_request) != null) {
+                    if (core.isDebug()) {
+                        core.debug('Get Issue Number off pull request payload');
+                        core.debug(JSON.stringify(github.context.payload));
+                    }
+                    issue_number = (_b = github.context.payload.pull_request) === null || _b === void 0 ? void 0 : _b.number;
                 }
-                issue_number = (_b = github.context.payload.pull_request) === null || _b === void 0 ? void 0 : _b.number;
+                else if (((_c = github.context.payload) === null || _c === void 0 ? void 0 : _c.issue) != null) {
+                    if (core.isDebug()) {
+                        core.debug('Get Issue Number off issue payload');
+                        core.debug(JSON.stringify(github.context.payload));
+                    }
+                    issue_number = (_d = github.context.payload.issue) === null || _d === void 0 ? void 0 : _d.number;
+                }
+                if (!issue_number) {
+                    if (core.isDebug()) {
+                        core.debug(`No issue number trying regex of head commit message: ${github.context.payload.head_commit.message}`);
+                        core.debug(JSON.stringify(github.context.payload));
+                    }
+                    const matches = github.context.payload.head_commit.message.match(/(?<=#)\d+/g);
+                    if (matches) {
+                        issue_number = parseInt(matches[0]);
+                    }
+                }
+                core.debug(`Issue Number: ${issue_number}`);
             }
-            else if (((_c = github.context.payload) === null || _c === void 0 ? void 0 : _c.issue) != null) {
-                if (core.isDebug()) {
-                    core.debug('Get Issue Number off issue payload');
-                    core.debug(JSON.stringify(github.context.payload));
-                }
-                issue_number = (_d = github.context.payload.issue) === null || _d === void 0 ? void 0 : _d.number;
-            }
-            if (!issue_number) {
-                if (core.isDebug()) {
-                    core.debug(`No issue number trying regex of head commit message: ${github.context.payload.head_commit.message}`);
-                    core.debug(JSON.stringify(github.context.payload));
-                }
-                const matches = github.context.payload.head_commit.message.match(/(?<=#)\d+/g);
-                if (matches) {
-                    issue_number = parseInt(matches[0]);
-                }
-            }
-            core.debug(`Issue Number: ${issue_number}`);
             return issue_number;
         }
     });

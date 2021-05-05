@@ -61,7 +61,7 @@ async function run(): Promise<void> {
     if (comment) {
       core.info('Add Plan Output as a Comment to PR')
       if (github.context.eventName === 'push') {
-        premessage = 'Plan Output before Apply\n'
+        premessage = 'Output from Terraform plan before Apply\n'
       }
       await addComment(issue_number, premessage, output, githubToken, github.context, false)
     }
@@ -73,7 +73,7 @@ async function run(): Promise<void> {
 
       if (comment) {
         core.info('Add Apply Output as a Comment to PR')
-        await addComment(issue_number,'Output From Apply\n',output, githubToken, github.context, true)
+        await addComment(issue_number, 'Output From Terraform Apply\n', output, githubToken, github.context, true)
       }
     }
 
@@ -88,36 +88,37 @@ async function run(): Promise<void> {
     let issue_number: number | undefined
 
     core.debug(`Event Name: ${github.context.eventName}`)
+    //The event when the pr is merged is actually push to the branch you are merging with, generally main/master˝
+    if (github.context.eventName === 'pull_request' || github.context.eventName === 'push') {
+      if (github.context.payload?.pull_request != null) {
+        if (core.isDebug()) {
+          core.debug('Get Issue Number off pull request payload')
+          core.debug(JSON.stringify(github.context.payload))
+        }
+        issue_number = github.context.payload.pull_request?.number
+      } else if (github.context.payload?.issue != null) {
+        if (core.isDebug()) {
+          core.debug('Get Issue Number off issue payload')
+          core.debug(JSON.stringify(github.context.payload))
+        }
 
-    if (github.context.payload?.pull_request != null) {
-      if (core.isDebug()) {
-        core.debug('Get Issue Number off pull request payload')
-        core.debug(JSON.stringify(github.context.payload))
-      }
-      issue_number = github.context.payload.pull_request?.number
-    } else if (github.context.payload?.issue != null) {
-      if (core.isDebug()) {
-        core.debug('Get Issue Number off issue payload')
-        core.debug(JSON.stringify(github.context.payload))
+        issue_number = github.context.payload.issue?.number
       }
 
-      issue_number = github.context.payload.issue?.number
+      if (!issue_number) {
+        if (core.isDebug()) {
+          core.debug(`No issue number trying regex of head commit message: ${github.context.payload.head_commit.message}`)
+          core.debug(JSON.stringify(github.context.payload))
+        }
+
+        const matches = github.context.payload.head_commit.message.match(/(?<=#)\d+/g)
+
+        if (matches) {
+          issue_number = parseInt(matches[0])
+        }
+      }
+      core.debug(`Issue Number: ${issue_number}`)
     }
-
-    if (!issue_number) {
-      if (core.isDebug()) {
-        core.debug(`No issue number trying regex of head commit message: ${github.context.payload.head_commit.message}`)
-        core.debug(JSON.stringify(github.context.payload))
-      }
-
-      const matches = github.context.payload.head_commit.message.match(/(?<=#)\d+/g)
-
-      if (matches) {
-        issue_number = parseInt(matches[0])
-      }
-    }
-
-    core.debug(`Issue Number: ${issue_number}`)
 
     return issue_number
   }
