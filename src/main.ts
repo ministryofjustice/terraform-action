@@ -94,7 +94,7 @@ async function run(): Promise<void> {
           }
 
         })
-        const commaJoinedValues = values.join(',')
+        const commaJoinedValues = debugObject.join(',')
         core.debug(commaJoinedValues)
       }
 
@@ -107,7 +107,6 @@ async function run(): Promise<void> {
       if (core.isDebug()) {
         let debugObject: Array<object> = new Array()
         const values = Object.keys(github.context.payload).map(key => github.context.payload[key])
-        const commaJoinedValues = values.join(',')
         values.forEach(value => {
 
           if (typeof (value) === 'object') {
@@ -118,6 +117,7 @@ async function run(): Promise<void> {
           }
 
         })
+        const commaJoinedValues = debugObject.join(',')
         core.debug(commaJoinedValues)
       }
 

@@ -111,7 +111,7 @@ function run() {
                             debugObject.push(value);
                         }
                     });
-                    const commaJoinedValues = values.join(',');
+                    const commaJoinedValues = debugObject.join(',');
                     core.debug(commaJoinedValues);
                 }
                 issue_number = context.payload.pull_request.number;
@@ -123,7 +123,6 @@ function run() {
                 if (core.isDebug()) {
                     let debugObject = new Array();
                     const values = Object.keys(github.context.payload).map(key => github.context.payload[key]);
-                    const commaJoinedValues = values.join(',');
                     values.forEach(value => {
                         if (typeof (value) === 'object') {
                             debugObject.push(Object.values(value));
@@ -132,6 +131,7 @@ function run() {
                             debugObject.push(value);
                         }
                     });
+                    const commaJoinedValues = debugObject.join(',');
                     core.debug(commaJoinedValues);
                 }
                 issue_number = parseInt(github.context.payload.head_commit.message.match(/(?<=#)\d+/g)[0]);
