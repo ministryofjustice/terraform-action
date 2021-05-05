@@ -108,7 +108,7 @@ async function run(): Promise<void> {
 
       let matches = github.context.payload.head_commit.message.match(/(?<=#)\d+/g)
 
-      if (!matches) {
+      if (matches) {
         issue_number = parseInt(matches[0])
       }
     }
