@@ -40,7 +40,7 @@ const exec = __importStar(__nccwpck_require__(1514));
 const github = __importStar(__nccwpck_require__(5438));
 const io = __importStar(__nccwpck_require__(7436));
 function run() {
-    var _a, _b;
+    var _a;
     return __awaiter(this, void 0, void 0, function* () {
         const workingDirectory = core.getInput('working-directory');
         const validate = core.getInput('validate').toLocaleLowerCase() === 'true';
@@ -78,12 +78,12 @@ function run() {
             output = '';
             core.info('Run Terraform Plan');
             yield exec.exec(terraformPath, ['plan', '-refresh=false', '-no-color'], options);
-            if (comment && !(github.context.eventName === 'push' || ((_a = github.context.payload.pull_request) === null || _a === void 0 ? void 0 : _a.merged))) {
+            if (comment) {
                 core.info('Add Plan Output as a Comment to PR');
                 yield addComment(issue_number, output, githubToken, github.context, false);
             }
             output = '';
-            if (github.context.eventName === 'push' || ((_b = github.context.payload.pull_request) === null || _b === void 0 ? void 0 : _b.merged)) {
+            if (github.context.eventName === 'push' || ((_a = github.context.payload.pull_request) === null || _a === void 0 ? void 0 : _a.merged)) {
                 core.info('Apply Terraform');
                 yield exec.exec(terraformPath, ['apply', '-auto-approve', '-no-color'], options);
                 if (comment) {
@@ -102,21 +102,28 @@ function run() {
             let issue_number;
             core.debug(`Event Name: ${github.context.eventName}`);
             if (((_a = github.context.payload) === null || _a === void 0 ? void 0 : _a.pull_request) != null) {
-                if (true) {
-                    core.debug("pull request here");
+                if (core.isDebug()) {
+                    core.debug("Get Issue Number off pull request payload");
                     core.debug(JSON.stringify(github.context.payload));
                 }
                 issue_number = (_b = github.context.payload.pull_request) === null || _b === void 0 ? void 0 : _b.number;
             }
             else if (((_c = github.context.payload) === null || _c === void 0 ? void 0 : _c.issue) != null) {
-                issue_number = (_d = github.context.payload.issue) === null || _d === void 0 ? void 0 : _d.number;
-            }
-            if (!issue_number) { //&& github.context.eventName !== 'push') {
-                if (true) {
-                    core.debug(`No issue number trying regex of: ${github.context.payload.head_commit.message}`);
+                if (core.isDebug()) {
+                    core.debug("Get Issue Number off issue payload");
                     core.debug(JSON.stringify(github.context.payload));
                 }
-                issue_number = parseInt(github.context.payload.head_commit.message.match(/(?<=#)\d+/g)[0]);
+                issue_number = (_d = github.context.payload.issue) === null || _d === void 0 ? void 0 : _d.number;
+            }
+            if (!issue_number) {
+                if (core.isDebug()) {
+                    core.debug(`No issue number trying regex of head commit message: ${github.context.payload.head_commit.message}`);
+                    core.debug(JSON.stringify(github.context.payload));
+                }
+                let matches = github.context.payload.head_commit.message.match(/(?<=#)\d+/g);
+                if (!matches) {
+                    issue_number = parseInt(matches[0]);
+                }
             }
             core.debug(`Issue Number: ${issue_number}`);
             return issue_number;

@@ -54,13 +54,14 @@ async function run(): Promise<void> {
     core.info('Run Terraform Plan')
     await exec.exec(terraformPath, ['plan', '-refresh=false', '-no-color'], options)
 
-    if (comment && !(github.context.eventName === 'push' || github.context.payload.pull_request?.merged)) {
+    if (comment) {
       core.info('Add Plan Output as a Comment to PR')
       await addComment(issue_number, output, githubToken, github.context, false)
     }
 
     output = ''
     if (github.context.eventName === 'push' || github.context.payload.pull_request?.merged) {
+
       core.info('Apply Terraform')
       await exec.exec(terraformPath, ['apply', '-auto-approve', '-no-color'], options)
 
@@ -78,27 +79,38 @@ async function run(): Promise<void> {
 
   function getIssueNumber(): number | undefined {
     let issue_number: number | undefined
+
     core.debug(`Event Name: ${github.context.eventName}`)
 
     if (github.context.payload?.pull_request != null) {
-      if (true) {
-        core.debug("pull request here")
+
+      if (core.isDebug()) {
+        core.debug("Get Issue Number off pull request payload")
+        core.debug(JSON.stringify(github.context.payload))
+      }
+      issue_number = github.context.payload.pull_request?.number
+    } else if (github.context.payload?.issue != null) {
+
+      if (core.isDebug()) {
+        core.debug("Get Issue Number off issue payload")
         core.debug(JSON.stringify(github.context.payload))
       }
 
-      issue_number = github.context.payload.pull_request?.number
-    } else if (github.context.payload?.issue != null) {
       issue_number = github.context.payload.issue?.number
     }
 
-    if (!issue_number) { //&& github.context.eventName !== 'push') {
+    if (!issue_number) {
 
-      if (true) {
-        core.debug(`No issue number trying regex of: ${github.context.payload.head_commit.message}`)
+      if (core.isDebug()) {
+        core.debug(`No issue number trying regex of head commit message: ${github.context.payload.head_commit.message}`)
         core.debug(JSON.stringify(github.context.payload))
       }
 
-      issue_number = parseInt(github.context.payload.head_commit.message.match(/(?<=#)\d+/g)[0])
+      let matches = github.context.payload.head_commit.message.match(/(?<=#)\d+/g)
+
+      if (!matches) {
+        issue_number = parseInt(matches[0])
+      }
     }
 
     core.debug(`Issue Number: ${issue_number}`)
