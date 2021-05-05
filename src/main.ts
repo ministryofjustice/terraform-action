@@ -82,6 +82,8 @@ async function run(): Promise<void> {
     if (core.isDebug()) {
       if (context.payload.pull_request != null) {
 
+        core.debug(JSON.stringify(github.context.payload))
+
         let debugObject: Array<object> = new Array()
         const values = Object.values(github.context.payload)
         values.forEach(value => {
@@ -96,6 +98,7 @@ async function run(): Promise<void> {
         })
         const commaJoinedValues = debugObject.join(',')
         core.debug(commaJoinedValues)
+
       }
 
       issue_number = context.payload.pull_request.number
@@ -105,6 +108,9 @@ async function run(): Promise<void> {
 
     if (!issue_number && context.eventName !== 'push') {
       if (core.isDebug()) {
+
+        core.debug(JSON.stringify(github.context.payload))
+
         let debugObject: Array<object> = new Array()
         const values = Object.keys(github.context.payload).map(key => github.context.payload[key])
         values.forEach(value => {
