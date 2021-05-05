@@ -50,7 +50,7 @@ function run() {
         let errorOutput = '';
         const terraformPath = yield io.which('terraform', true);
         try {
-            const issue_number = getIssueNumber(github.context);
+            const issue_number = getIssueNumber();
             const options = {};
             options.listeners = {
                 stdout: (data) => {
@@ -97,10 +97,11 @@ function run() {
             core.error(errorOutput);
             core.setFailed(error.message);
         }
-        function getIssueNumber(context) {
+        function getIssueNumber() {
+            var _a, _b, _c, _d;
             let issue_number;
-            if (core.isDebug()) {
-                if (context.payload.pull_request != null) {
+            if (((_a = github.context.payload) === null || _a === void 0 ? void 0 : _a.pull_request) != null) {
+                if (core.isDebug()) {
                     core.debug(JSON.stringify(github.context.payload));
                     let debugObject = new Array();
                     const values = Object.values(github.context.payload);
@@ -115,12 +116,12 @@ function run() {
                     const commaJoinedValues = debugObject.join(',');
                     core.debug(commaJoinedValues);
                 }
-                issue_number = context.payload.pull_request.number;
+                issue_number = (_b = github.context.payload.pull_request) === null || _b === void 0 ? void 0 : _b.number;
             }
-            else if (github.context.payload.issue != null) {
-                issue_number = github.context.payload.issue.number;
+            else if (((_c = github.context.payload) === null || _c === void 0 ? void 0 : _c.issue) != null) {
+                issue_number = (_d = github.context.payload.issue) === null || _d === void 0 ? void 0 : _d.number;
             }
-            if (!issue_number && context.eventName !== 'push') {
+            if (!issue_number && github.context.eventName !== 'push') {
                 if (core.isDebug()) {
                     core.debug(JSON.stringify(github.context.payload));
                     let debugObject = new Array();

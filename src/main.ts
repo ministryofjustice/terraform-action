@@ -16,7 +16,7 @@ async function run(): Promise<void> {
   const terraformPath = await io.which('terraform', true)
 
   try {
-    const issue_number: number | undefined = getIssueNumber(github.context)
+    const issue_number: number | undefined = getIssueNumber()
 
     const options: exec.ExecOptions = {}
 
@@ -76,12 +76,11 @@ async function run(): Promise<void> {
     core.setFailed(error.message)
   }
 
-  function getIssueNumber(context: any): number | undefined {
+  function getIssueNumber(): number | undefined {
     let issue_number: number | undefined
 
-    if (core.isDebug()) {
-      if (context.payload.pull_request != null) {
-
+    if (github.context.payload?.pull_request != null) {
+      if (core.isDebug()) {
         core.debug(JSON.stringify(github.context.payload))
 
         let debugObject: Array<object> = new Array()
@@ -101,12 +100,12 @@ async function run(): Promise<void> {
 
       }
 
-      issue_number = context.payload.pull_request.number
-    } else if (github.context.payload.issue != null) {
-      issue_number = github.context.payload.issue.number
+      issue_number = github.context.payload.pull_request?.number
+    } else if (github.context.payload?.issue != null) {
+      issue_number = github.context.payload.issue?.number
     }
 
-    if (!issue_number && context.eventName !== 'push') {
+    if (!issue_number && github.context.eventName !== 'push') {
       if (core.isDebug()) {
 
         core.debug(JSON.stringify(github.context.payload))
