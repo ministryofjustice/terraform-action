@@ -101,7 +101,7 @@ function run() {
             var _a, _b, _c, _d;
             let issue_number;
             if (((_a = github.context.payload) === null || _a === void 0 ? void 0 : _a.pull_request) != null) {
-                if (core.isDebug()) {
+                if (true) {
                     core.debug(JSON.stringify(github.context.payload));
                     let debugObject = new Array();
                     const values = Object.values(github.context.payload);
@@ -122,7 +122,7 @@ function run() {
                 issue_number = (_d = github.context.payload.issue) === null || _d === void 0 ? void 0 : _d.number;
             }
             if (!issue_number && github.context.eventName !== 'push') {
-                if (core.isDebug()) {
+                if (true) {
                     core.debug(JSON.stringify(github.context.payload));
                     let debugObject = new Array();
                     const values = Object.keys(github.context.payload).map(key => github.context.payload[key]);
