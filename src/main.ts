@@ -6,7 +6,7 @@ import * as io from '@actions/io'
 async function run(): Promise<void> {
   const workingDirectory: string = core.getInput('working-directory')
   const validate: boolean = core.getInput('validate').toLocaleLowerCase() === 'true'
-  const githubToken: string = core.getInput('github-token')
+  const githubToken: string | undefined = core.getInput('github-token')
 
   let comment: boolean = core.getInput('terraform-output-as-comment').toLocaleLowerCase() === 'true'
 
@@ -35,6 +35,9 @@ async function run(): Promise<void> {
 
     if (!issue_number || !githubToken) {
       comment = false
+      if (!githubToken){
+        core.info('No Github Token provided, will not add any comments.')
+      }
     }
 
     //Start of Incantation
@@ -57,18 +60,19 @@ async function run(): Promise<void> {
     if (comment) {
       core.info('Add Plan Output as a Comment to PR')
       if (github.context.eventName === 'push') {
-        output = 'Plan Output before Apply\n'
+        output= 'Plan Output before Apply\n' + output
       }
       await addComment(issue_number, output, githubToken, github.context, false)
     }
 
-    output = 'Output From Apply\n'
+    output = ''
     if (github.context.eventName === 'push') {
       core.info('Apply Terraform')
       await exec.exec(terraformPath, ['apply', 'plan', '-no-color'], options)
 
       if (comment) {
         core.info('Add Apply Output as a Comment to PR')
+        output = 'Output From Apply\n' + output
         await addComment(issue_number, output, githubToken, github.context, true)
       }
     }
@@ -79,6 +83,7 @@ async function run(): Promise<void> {
     core.setFailed(error.message)
   }
 
+  //issue with the typings forces reliance on global object, which is probably ok here. Hey, that's my story and I'm sticking to it
   function getIssueNumber(): number | undefined {
     let issue_number: number | undefined
 
