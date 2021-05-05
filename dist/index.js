@@ -83,7 +83,7 @@ function run() {
             if (comment) {
                 core.info('Add Plan Output as a Comment to PR');
                 if (github.context.eventName === 'push') {
-                    output = 'Plan Output before Apply\n' + output;
+                    output = `Plan Output before Apply\n${output}`;
                 }
                 yield addComment(issue_number, output, githubToken, github.context, false);
             }
@@ -93,8 +93,7 @@ function run() {
                 yield exec.exec(terraformPath, ['apply', 'plan', '-no-color'], options);
                 if (comment) {
                     core.info('Add Apply Output as a Comment to PR');
-                    output = 'Output From Apply\n' + output;
-                    yield addComment(issue_number, output, githubToken, github.context, true);
+                    yield addComment(issue_number, `Output From Apply\n${output}`, githubToken, github.context, true);
                 }
             }
             //Incantation completed, we have successfully summoned the terraform daemon.
@@ -168,7 +167,7 @@ isClosed) {
                     issue_number
                 });
             }
-            core.debug(`Message Added`);
+            core.debug(`Message Added ${message}`);
         }
         catch (error) {
             core.setFailed(error.message);

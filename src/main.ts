@@ -60,7 +60,7 @@ async function run(): Promise<void> {
     if (comment) {
       core.info('Add Plan Output as a Comment to PR')
       if (github.context.eventName === 'push') {
-        output= 'Plan Output before Apply\n' + output
+        output= `Plan Output before Apply\n${output}`
       }
       await addComment(issue_number, output, githubToken, github.context, false)
     }
@@ -72,8 +72,7 @@ async function run(): Promise<void> {
 
       if (comment) {
         core.info('Add Apply Output as a Comment to PR')
-        output = 'Output From Apply\n' + output
-        await addComment(issue_number, output, githubToken, github.context, true)
+        await addComment(issue_number, `Output From Apply\n${output}`, githubToken, github.context, true)
       }
     }
 
@@ -163,7 +162,7 @@ async function addComment(
       })
     }
 
-    core.debug(`Message Added`)
+    core.debug(`Message Added ${message}`)
   } catch (error) {
     core.setFailed(error.message)
     return false
