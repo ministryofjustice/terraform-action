@@ -6,7 +6,7 @@ import * as io from '@actions/io'
 async function run(): Promise<void> {
   const workingDirectory: string = core.getInput('working-directory')
   const validate: boolean = core.getInput('validate').toLocaleLowerCase() === 'true'
-  const githubToken: string = core.getInput('github-token', { required: true })
+  const githubToken: string = core.getInput('github-token')
 
   let comment: boolean = core.getInput('terraform-output-as-comment').toLocaleLowerCase() === 'true'
 
@@ -52,18 +52,20 @@ async function run(): Promise<void> {
 
     output = ''
     core.info('Run Terraform Plan')
-    await exec.exec(terraformPath, ['plan', '-refresh=false', '-no-color'], options)
+    await exec.exec(terraformPath, ['plan', '-refresh=false', '-no-color', '-out=plan'], options)
 
     if (comment) {
       core.info('Add Plan Output as a Comment to PR')
+      if (github.context.eventName === 'push') {
+        output = 'Plan Output before Apply\n'
+      }
       await addComment(issue_number, output, githubToken, github.context, false)
     }
 
-    output = ''
-    if (github.context.eventName === 'push' || github.context.payload.pull_request?.merged) {
-
+    output = 'Output From Apply\n'
+    if (github.context.eventName === 'push') {
       core.info('Apply Terraform')
-      await exec.exec(terraformPath, ['apply', '-auto-approve', '-no-color'], options)
+      await exec.exec(terraformPath, ['apply', 'plan', '-no-color'], options)
 
       if (comment) {
         core.info('Add Apply Output as a Comment to PR')
@@ -83,16 +85,14 @@ async function run(): Promise<void> {
     core.debug(`Event Name: ${github.context.eventName}`)
 
     if (github.context.payload?.pull_request != null) {
-
       if (core.isDebug()) {
-        core.debug("Get Issue Number off pull request payload")
+        core.debug('Get Issue Number off pull request payload')
         core.debug(JSON.stringify(github.context.payload))
       }
       issue_number = github.context.payload.pull_request?.number
     } else if (github.context.payload?.issue != null) {
-
       if (core.isDebug()) {
-        core.debug("Get Issue Number off issue payload")
+        core.debug('Get Issue Number off issue payload')
         core.debug(JSON.stringify(github.context.payload))
       }
 
@@ -100,13 +100,12 @@ async function run(): Promise<void> {
     }
 
     if (!issue_number) {
-
       if (core.isDebug()) {
         core.debug(`No issue number trying regex of head commit message: ${github.context.payload.head_commit.message}`)
         core.debug(JSON.stringify(github.context.payload))
       }
 
-      let matches = github.context.payload.head_commit.message.match(/(?<=#)\d+/g)
+      const matches = github.context.payload.head_commit.message.match(/(?<=#)\d+/g)
 
       if (matches) {
         issue_number = parseInt(matches[0])
@@ -120,12 +119,12 @@ async function run(): Promise<void> {
 }
 
 run()
-
+//I can't get the typings to work so ... I beg forgiveness
 async function addComment(
   issue_number: number | undefined,
   message: string,
   github_token: string,
-  context: any,
+  context: any, // eslint-disable-line @typescript-eslint/no-explicit-any
   isClosed: boolean
 ): Promise<boolean> {
   try {

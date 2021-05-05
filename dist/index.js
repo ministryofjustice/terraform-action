@@ -40,11 +40,10 @@ const exec = __importStar(__nccwpck_require__(1514));
 const github = __importStar(__nccwpck_require__(5438));
 const io = __importStar(__nccwpck_require__(7436));
 function run() {
-    var _a;
     return __awaiter(this, void 0, void 0, function* () {
         const workingDirectory = core.getInput('working-directory');
         const validate = core.getInput('validate').toLocaleLowerCase() === 'true';
-        const githubToken = core.getInput('github-token', { required: true });
+        const githubToken = core.getInput('github-token');
         let comment = core.getInput('terraform-output-as-comment').toLocaleLowerCase() === 'true';
         let output = '';
         let errorOutput = '';
@@ -77,15 +76,18 @@ function run() {
             yield exec.exec(terraformPath, ['refresh'], options);
             output = '';
             core.info('Run Terraform Plan');
-            yield exec.exec(terraformPath, ['plan', '-refresh=false', '-no-color'], options);
+            yield exec.exec(terraformPath, ['plan', '-refresh=false', '-no-color', '-out=plan'], options);
             if (comment) {
                 core.info('Add Plan Output as a Comment to PR');
+                if (github.context.eventName === 'push') {
+                    output = 'Plan Output before Apply\n';
+                }
                 yield addComment(issue_number, output, githubToken, github.context, false);
             }
-            output = '';
-            if (github.context.eventName === 'push' || ((_a = github.context.payload.pull_request) === null || _a === void 0 ? void 0 : _a.merged)) {
+            output = 'Output From Apply\n';
+            if (github.context.eventName === 'push') {
                 core.info('Apply Terraform');
-                yield exec.exec(terraformPath, ['apply', '-auto-approve', '-no-color'], options);
+                yield exec.exec(terraformPath, ['apply', 'plan', '-no-color'], options);
                 if (comment) {
                     core.info('Add Apply Output as a Comment to PR');
                     yield addComment(issue_number, output, githubToken, github.context, true);
@@ -103,14 +105,14 @@ function run() {
             core.debug(`Event Name: ${github.context.eventName}`);
             if (((_a = github.context.payload) === null || _a === void 0 ? void 0 : _a.pull_request) != null) {
                 if (core.isDebug()) {
-                    core.debug("Get Issue Number off pull request payload");
+                    core.debug('Get Issue Number off pull request payload');
                     core.debug(JSON.stringify(github.context.payload));
                 }
                 issue_number = (_b = github.context.payload.pull_request) === null || _b === void 0 ? void 0 : _b.number;
             }
             else if (((_c = github.context.payload) === null || _c === void 0 ? void 0 : _c.issue) != null) {
                 if (core.isDebug()) {
-                    core.debug("Get Issue Number off issue payload");
+                    core.debug('Get Issue Number off issue payload');
                     core.debug(JSON.stringify(github.context.payload));
                 }
                 issue_number = (_d = github.context.payload.issue) === null || _d === void 0 ? void 0 : _d.number;
@@ -120,7 +122,7 @@ function run() {
                     core.debug(`No issue number trying regex of head commit message: ${github.context.payload.head_commit.message}`);
                     core.debug(JSON.stringify(github.context.payload));
                 }
-                let matches = github.context.payload.head_commit.message.match(/(?<=#)\d+/g);
+                const matches = github.context.payload.head_commit.message.match(/(?<=#)\d+/g);
                 if (matches) {
                     issue_number = parseInt(matches[0]);
                 }
@@ -131,7 +133,9 @@ function run() {
     });
 }
 run();
-function addComment(issue_number, message, github_token, context, isClosed) {
+//I can't get the typings to work so ... I beg forgiveness
+function addComment(issue_number, message, github_token, context, // eslint-disable-line @typescript-eslint/no-explicit-any
+isClosed) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             core.debug('Add Comment');
