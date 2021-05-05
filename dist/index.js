@@ -100,6 +100,7 @@ function run() {
         function getIssueNumber() {
             var _a, _b, _c, _d;
             let issue_number;
+            core.debug(`Event Name: ${github.context.eventName}`);
             if (((_a = github.context.payload) === null || _a === void 0 ? void 0 : _a.pull_request) != null) {
                 if (true) {
                     core.debug(JSON.stringify(github.context.payload));
@@ -121,7 +122,7 @@ function run() {
             else if (((_c = github.context.payload) === null || _c === void 0 ? void 0 : _c.issue) != null) {
                 issue_number = (_d = github.context.payload.issue) === null || _d === void 0 ? void 0 : _d.number;
             }
-            if (!issue_number && github.context.eventName !== 'push') {
+            if (!issue_number) { //&& github.context.eventName !== 'push') {
                 if (true) {
                     core.debug(JSON.stringify(github.context.payload));
                     let debugObject = new Array();

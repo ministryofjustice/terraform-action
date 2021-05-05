@@ -78,6 +78,7 @@ async function run(): Promise<void> {
 
   function getIssueNumber(): number | undefined {
     let issue_number: number | undefined
+    core.debug(`Event Name: ${github.context.eventName}`)
 
     if (github.context.payload?.pull_request != null) {
       if (true) {
@@ -105,7 +106,8 @@ async function run(): Promise<void> {
       issue_number = github.context.payload.issue?.number
     }
 
-    if (!issue_number && github.context.eventName !== 'push') {
+    if (!issue_number) { //&& github.context.eventName !== 'push') {
+
       if (true) {
 
         core.debug(JSON.stringify(github.context.payload))
