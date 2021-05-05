@@ -82,23 +82,8 @@ async function run(): Promise<void> {
 
     if (github.context.payload?.pull_request != null) {
       if (true) {
+        core.debug("pull request here")
         core.debug(JSON.stringify(github.context.payload))
-
-        let debugObject: Array<object> = new Array()
-        const values = Object.values(github.context.payload)
-        values.forEach(value => {
-
-          if (typeof (value) === 'object') {
-            debugObject.push(Object.values(value))
-          }
-          else {
-            debugObject.push(value)
-          }
-
-        })
-        const commaJoinedValues = debugObject.join(',')
-        core.debug(commaJoinedValues)
-
       }
 
       issue_number = github.context.payload.pull_request?.number
@@ -109,23 +94,8 @@ async function run(): Promise<void> {
     if (!issue_number) { //&& github.context.eventName !== 'push') {
 
       if (true) {
-
+        core.debug(`No issue number trying regex of: ${github.context.payload.head_commit.message}`)
         core.debug(JSON.stringify(github.context.payload))
-
-        let debugObject: Array<object> = new Array()
-        const values = Object.keys(github.context.payload).map(key => github.context.payload[key])
-        values.forEach(value => {
-
-          if (typeof (value) === 'object') {
-            debugObject.push(Object.values(value))
-          }
-          else {
-            debugObject.push(value)
-          }
-
-        })
-        const commaJoinedValues = debugObject.join(',')
-        core.debug(commaJoinedValues)
       }
 
       issue_number = parseInt(github.context.payload.head_commit.message.match(/(?<=#)\d+/g)[0])
