@@ -89,7 +89,7 @@ function run() {
                 yield addComment(issue_number, premessage, output, githubToken, github.context, false);
             }
             output = '';
-            if (github.context.eventName === 'push') {
+            if (github.context.eventName === 'push' || github.context.eventName === 'workflow_dispatch' || github.context.eventName === 'repository_dispatch') {
                 core.info('Apply Terraform');
                 yield exec.exec(terraformPath, ['apply', 'plan', '-no-color'], options);
                 if (comment) {
