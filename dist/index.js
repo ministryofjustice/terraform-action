@@ -99,19 +99,41 @@ function run() {
         }
         function getIssueNumber(context) {
             let issue_number;
-            if (context.payload.pull_request != null) {
-                const values = Object.values(github.context.payload);
-                const commaJoinedValues = values.join(',');
-                core.debug(commaJoinedValues);
+            if (core.isDebug()) {
+                if (context.payload.pull_request != null) {
+                    let debugObject = new Array();
+                    const values = Object.values(github.context.payload);
+                    values.forEach(value => {
+                        if (typeof (value) === 'object') {
+                            debugObject.push(Object.values(value));
+                        }
+                        else {
+                            debugObject.push(value);
+                        }
+                    });
+                    const commaJoinedValues = values.join(',');
+                    core.debug(commaJoinedValues);
+                }
                 issue_number = context.payload.pull_request.number;
             }
             else if (github.context.payload.issue != null) {
                 issue_number = github.context.payload.issue.number;
             }
             if (!issue_number && context.eventName !== 'push') {
-                const values = Object.keys(github.context.payload).map(key => github.context.payload[key]);
-                const commaJoinedValues = values.join(',');
-                core.debug(commaJoinedValues);
+                if (core.isDebug()) {
+                    let debugObject = new Array();
+                    const values = Object.keys(github.context.payload).map(key => github.context.payload[key]);
+                    const commaJoinedValues = values.join(',');
+                    values.forEach(value => {
+                        if (typeof (value) === 'object') {
+                            debugObject.push(Object.values(value));
+                        }
+                        else {
+                            debugObject.push(value);
+                        }
+                    });
+                    core.debug(commaJoinedValues);
+                }
                 issue_number = parseInt(github.context.payload.head_commit.message.match(/(?<=#)\d+/g)[0]);
             }
             core.debug(`Issue Number: ${issue_number}`);

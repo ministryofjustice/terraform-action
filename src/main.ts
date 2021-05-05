@@ -2,12 +2,11 @@ import * as core from '@actions/core'
 import * as exec from '@actions/exec'
 import * as github from '@actions/github'
 import * as io from '@actions/io'
-import {Context} from 'vm'
 
 async function run(): Promise<void> {
   const workingDirectory: string = core.getInput('working-directory')
   const validate: boolean = core.getInput('validate').toLocaleLowerCase() === 'true'
-  const githubToken: string = core.getInput('github-token', {required: true})
+  const githubToken: string = core.getInput('github-token', { required: true })
 
   let comment: boolean = core.getInput('terraform-output-as-comment').toLocaleLowerCase() === 'true'
 
@@ -77,22 +76,51 @@ async function run(): Promise<void> {
     core.setFailed(error.message)
   }
 
-  function getIssueNumber(context: Context): number | undefined {
+  function getIssueNumber(context: any): number | undefined {
     let issue_number: number | undefined
 
-    if (context.payload.pull_request != null) {
-      const values = Object.values(github.context.payload)
-      const commaJoinedValues = values.join(',')
-      core.debug(commaJoinedValues)
+    if (core.isDebug()) {
+      if (context.payload.pull_request != null) {
+
+        let debugObject: Array<object> = new Array()
+        const values = Object.values(github.context.payload)
+        values.forEach(value => {
+
+          if (typeof (value) === 'object') {
+            debugObject.push(Object.values(value))
+          }
+          else {
+            debugObject.push(value)
+          }
+
+        })
+        const commaJoinedValues = values.join(',')
+        core.debug(commaJoinedValues)
+      }
+
       issue_number = context.payload.pull_request.number
     } else if (github.context.payload.issue != null) {
       issue_number = github.context.payload.issue.number
     }
 
     if (!issue_number && context.eventName !== 'push') {
-      const values = Object.keys(github.context.payload).map(key => github.context.payload[key])
-      const commaJoinedValues = values.join(',')
-      core.debug(commaJoinedValues)
+      if (core.isDebug()) {
+        let debugObject: Array<object> = new Array()
+        const values = Object.keys(github.context.payload).map(key => github.context.payload[key])
+        const commaJoinedValues = values.join(',')
+        values.forEach(value => {
+
+          if (typeof (value) === 'object') {
+            debugObject.push(Object.values(value))
+          }
+          else {
+            debugObject.push(value)
+          }
+
+        })
+        core.debug(commaJoinedValues)
+      }
+
       issue_number = parseInt(github.context.payload.head_commit.message.match(/(?<=#)\d+/g)[0])
     }
 
@@ -108,7 +136,7 @@ async function addComment(
   issue_number: number | undefined,
   message: string,
   github_token: string,
-  context: Context,
+  context: any,
   isClosed: boolean
 ): Promise<boolean> {
   try {
