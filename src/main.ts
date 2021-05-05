@@ -12,6 +12,7 @@ async function run(): Promise<void> {
 
   let output = ''
   let errorOutput = ''
+  let premessage = ''
 
   const terraformPath = await io.which('terraform', true)
 
@@ -35,7 +36,7 @@ async function run(): Promise<void> {
 
     if (!issue_number || !githubToken) {
       comment = false
-      if (!githubToken){
+      if (!githubToken) {
         core.info('No Github Token provided, will not add any comments.')
       }
     }
@@ -60,9 +61,9 @@ async function run(): Promise<void> {
     if (comment) {
       core.info('Add Plan Output as a Comment to PR')
       if (github.context.eventName === 'push') {
-        output= `Plan Output before Apply\n${output}`
+        premessage = 'Plan Output before Apply\n'
       }
-      await addComment(issue_number, output, githubToken, github.context, false)
+      await addComment(issue_number, premessage, output, githubToken, github.context, false)
     }
 
     output = ''
@@ -72,7 +73,7 @@ async function run(): Promise<void> {
 
       if (comment) {
         core.info('Add Apply Output as a Comment to PR')
-        await addComment(issue_number, `Output From Apply\n${output}`, githubToken, github.context, true)
+        await addComment(issue_number,'Output From Apply\n',output, githubToken, github.context, true)
       }
     }
 
@@ -126,6 +127,7 @@ run()
 //I can't get the typings to work so ... I beg forgiveness
 async function addComment(
   issue_number: number | undefined,
+  premessage: string | undefined,
   message: string,
   github_token: string,
   context: any, // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -143,7 +145,7 @@ async function addComment(
     core.debug(`owner: ${context.repo.owner}`)
     core.debug(`repo: ${context.repo.repo}`)
 
-    const formattedMessage = `\`\`\`${message}\`\`\``
+    const formattedMessage = `${premessage}\`\`\`${message}\`\`\``
 
     if (isClosed) {
       await octokit.pulls.createReview({

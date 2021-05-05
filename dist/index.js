@@ -47,6 +47,7 @@ function run() {
         let comment = core.getInput('terraform-output-as-comment').toLocaleLowerCase() === 'true';
         let output = '';
         let errorOutput = '';
+        let premessage = '';
         const terraformPath = yield io.which('terraform', true);
         try {
             const issue_number = getIssueNumber();
@@ -83,9 +84,9 @@ function run() {
             if (comment) {
                 core.info('Add Plan Output as a Comment to PR');
                 if (github.context.eventName === 'push') {
-                    output = `Plan Output before Apply\n${output}`;
+                    premessage = 'Plan Output before Apply\n';
                 }
-                yield addComment(issue_number, output, githubToken, github.context, false);
+                yield addComment(issue_number, premessage, output, githubToken, github.context, false);
             }
             output = '';
             if (github.context.eventName === 'push') {
@@ -93,7 +94,7 @@ function run() {
                 yield exec.exec(terraformPath, ['apply', 'plan', '-no-color'], options);
                 if (comment) {
                     core.info('Add Apply Output as a Comment to PR');
-                    yield addComment(issue_number, `Output From Apply\n${output}`, githubToken, github.context, true);
+                    yield addComment(issue_number, 'Output From Apply\n', output, githubToken, github.context, true);
                 }
             }
             //Incantation completed, we have successfully summoned the terraform daemon.
@@ -138,7 +139,7 @@ function run() {
 }
 run();
 //I can't get the typings to work so ... I beg forgiveness
-function addComment(issue_number, message, github_token, context, // eslint-disable-line @typescript-eslint/no-explicit-any
+function addComment(issue_number, premessage, message, github_token, context, // eslint-disable-line @typescript-eslint/no-explicit-any
 isClosed) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -149,7 +150,7 @@ isClosed) {
             const octokit = github.getOctokit(github_token);
             core.debug(`owner: ${context.repo.owner}`);
             core.debug(`repo: ${context.repo.repo}`);
-            const formattedMessage = `\`\`\`${message}\`\`\``;
+            const formattedMessage = `${premessage}\`\`\`${message}\`\`\``;
             if (isClosed) {
                 yield octokit.pulls.createReview({
                     owner: github.context.repo.owner,
