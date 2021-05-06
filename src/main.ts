@@ -132,13 +132,13 @@ function getIssueNumber(): number | undefined {
 function checkApply(applyOnDefaultBranchOnly: boolean): boolean {
   let apply = false
 
-  if (!(github.context.eventName === 'push' || github.context.eventName === 'workflow_dispatch' || github.context.eventName === 'repository_dispatch')) {
+  if ((github.context.eventName === 'push' || github.context.eventName === 'workflow_dispatch' || github.context.eventName === 'repository_dispatch')) {
     if (core.isDebug()) {
       core.debug('Checking whether we should apply or not')
       core.debug(JSON.stringify(github.context.payload))
     }
     if (applyOnDefaultBranchOnly) {
-      const tempBranch = github.context.payload.ref.split('/')
+      const tempBranch = github.context.payload?.ref.split('/')
       core.debug(tempBranch)
       const currentBranch = tempBranch[tempBranch.length - 1]
       core.debug(currentBranch)

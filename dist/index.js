@@ -146,19 +146,19 @@ function getIssueNumber() {
 //We only ever want to apply on push, workflow and repository dispatch, which have a ref field on the payload of form refs/head/branchname
 //We need to check then whether we're on the right branch to apply depending on applyOnDefaultBranch
 function checkApply(applyOnDefaultBranchOnly) {
-    var _a;
+    var _a, _b;
     let apply = false;
-    if (!(github.context.eventName === 'push' || github.context.eventName === 'workflow_dispatch' || github.context.eventName === 'repository_dispatch')) {
+    if ((github.context.eventName === 'push' || github.context.eventName === 'workflow_dispatch' || github.context.eventName === 'repository_dispatch')) {
         if (core.isDebug()) {
             core.debug('Checking whether we should apply or not');
             core.debug(JSON.stringify(github.context.payload));
         }
         if (applyOnDefaultBranchOnly) {
-            const tempBranch = github.context.payload.ref.split('/');
+            const tempBranch = (_a = github.context.payload) === null || _a === void 0 ? void 0 : _a.ref.split('/');
             core.debug(tempBranch);
             const currentBranch = tempBranch[tempBranch.length - 1];
             core.debug(currentBranch);
-            if (((_a = github.context.payload.repository) === null || _a === void 0 ? void 0 : _a.default_branch) === currentBranch) {
+            if (((_b = github.context.payload.repository) === null || _b === void 0 ? void 0 : _b.default_branch) === currentBranch) {
                 apply = true;
             }
         }
