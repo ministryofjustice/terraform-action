@@ -40,17 +40,20 @@ const exec = __importStar(__nccwpck_require__(1514));
 const github = __importStar(__nccwpck_require__(5438));
 const io = __importStar(__nccwpck_require__(7436));
 function run() {
-    var _a, _b;
     return __awaiter(this, void 0, void 0, function* () {
         const workingDirectory = core.getInput('working-directory');
         const validate = core.getInput('validate').toLocaleLowerCase() === 'true';
-        const githubToken = core.getInput('github-token', { required: true });
+        const githubToken = core.getInput('github-token');
+        const applyOnDefaultBranchOnly = core.getInput('apply-on-default-branch-only').toLocaleLowerCase() === 'true';
         let comment = core.getInput('terraform-output-as-comment').toLocaleLowerCase() === 'true';
         let output = '';
         let errorOutput = '';
+        let premessage = '';
         const terraformPath = yield io.which('terraform', true);
         try {
-            const issue_number = getIssueNumber(github.context);
+            const issue_number = getIssueNumber();
+            //repository dispatch always happens on the main branch so no need for further checks
+            const apply = github.context.eventName === 'repository_dispatch' ? true : checkApply(applyOnDefaultBranchOnly);
             const options = {};
             options.listeners = {
                 stdout: (data) => {
@@ -63,8 +66,11 @@ function run() {
             if (workingDirectory.length !== -1) {
                 options.cwd = workingDirectory;
             }
-            if (!issue_number) {
+            if (!issue_number || !githubToken) {
                 comment = false;
+                if (!githubToken) {
+                    core.info('No Github Token provided, will not add any comments.');
+                }
             }
             //Start of Incantation
             core.info('Initialize Terraform');
@@ -77,18 +83,21 @@ function run() {
             yield exec.exec(terraformPath, ['refresh'], options);
             output = '';
             core.info('Run Terraform Plan');
-            yield exec.exec(terraformPath, ['plan', '-refresh=false', '-no-color'], options);
-            if (comment && !(github.context.eventName === 'push' || ((_a = github.context.payload.pull_request) === null || _a === void 0 ? void 0 : _a.merged))) {
+            yield exec.exec(terraformPath, ['plan', '-refresh=false', '-no-color', '-out=plan'], options);
+            if (comment) {
                 core.info('Add Plan Output as a Comment to PR');
-                yield addComment(issue_number, output, githubToken, github.context, false);
+                if (github.context.eventName === 'push') {
+                    premessage = 'Output from Terraform plan before Apply\n';
+                }
+                yield addComment(issue_number, premessage, output, githubToken, github.context, false);
             }
             output = '';
-            if (github.context.eventName === 'push' || ((_b = github.context.payload.pull_request) === null || _b === void 0 ? void 0 : _b.merged)) {
+            if (apply) {
                 core.info('Apply Terraform');
-                yield exec.exec(terraformPath, ['apply', '-auto-approve', '-no-color'], options);
+                yield exec.exec(terraformPath, ['apply', 'plan', '-no-color'], options);
                 if (comment) {
                     core.info('Add Apply Output as a Comment to PR');
-                    yield addComment(issue_number, output, githubToken, github.context, true);
+                    yield addComment(issue_number, 'Output From Terraform Apply\n', output, githubToken, github.context, true);
                 }
             }
             //Incantation completed, we have successfully summoned the terraform daemon.
@@ -97,30 +106,72 @@ function run() {
             core.error(errorOutput);
             core.setFailed(error.message);
         }
-        function getIssueNumber(context) {
-            let issue_number;
-            if (context.payload.pull_request != null) {
-                const values = Object.values(github.context.payload);
-                const commaJoinedValues = values.join(',');
-                core.debug(commaJoinedValues);
-                issue_number = context.payload.pull_request.number;
-            }
-            else if (github.context.payload.issue != null) {
-                issue_number = github.context.payload.issue.number;
-            }
-            if (!issue_number && context.eventName !== 'push') {
-                const values = Object.keys(github.context.payload).map(key => github.context.payload[key]);
-                const commaJoinedValues = values.join(',');
-                core.debug(commaJoinedValues);
-                issue_number = parseInt(github.context.payload.head_commit.message.match(/(?<=#)\d+/g)[0]);
-            }
-            core.debug(`Issue Number: ${issue_number}`);
-            return issue_number;
-        }
     });
 }
 run();
-function addComment(issue_number, message, github_token, context, isClosed) {
+//issue with the typings forces reliance on global object, which is probably ok here. Hey, that's my story and I'm sticking to it
+function getIssueNumber() {
+    var _a, _b, _c, _d;
+    let issue_number;
+    core.debug(`Event Name: ${github.context.eventName}`);
+    //The event when the pr is merged is actually push to the branch you are merging with, generally main/master˝
+    if (github.context.eventName === 'pull_request' || github.context.eventName === 'push') {
+        if (((_a = github.context.payload) === null || _a === void 0 ? void 0 : _a.pull_request) != null) {
+            if (core.isDebug()) {
+                core.debug('Get Issue Number off pull request payload');
+                core.debug(JSON.stringify(github.context.payload));
+            }
+            issue_number = (_b = github.context.payload.pull_request) === null || _b === void 0 ? void 0 : _b.number;
+        }
+        else if (((_c = github.context.payload) === null || _c === void 0 ? void 0 : _c.issue) != null) {
+            if (core.isDebug()) {
+                core.debug('Get Issue Number off issue payload');
+                core.debug(JSON.stringify(github.context.payload));
+            }
+            issue_number = (_d = github.context.payload.issue) === null || _d === void 0 ? void 0 : _d.number;
+        }
+        if (!issue_number) {
+            if (core.isDebug()) {
+                core.debug(`No issue number trying regex of head commit message: ${github.context.payload.head_commit.message}`);
+                core.debug(JSON.stringify(github.context.payload));
+            }
+            const matches = github.context.payload.head_commit.message.match(/(?<=#)\d+/g);
+            if (matches) {
+                issue_number = parseInt(matches[0]);
+            }
+        }
+        core.debug(`Issue Number: ${issue_number}`);
+    }
+    return issue_number;
+}
+//We only ever want to apply on push, workflow and repository dispatch, which have a ref field on the payload of form refs/head/branchname
+//We need to check then whether we're on the right branch to apply depending on applyOnDefaultBranch
+function checkApply(applyOnDefaultBranchOnly) {
+    var _a, _b;
+    let apply = false;
+    if (github.context.eventName === 'push' || github.context.eventName === 'workflow_dispatch') {
+        if (core.isDebug()) {
+            core.debug('Checking whether we should apply or not');
+            core.debug(JSON.stringify(github.context.payload));
+        }
+        if (applyOnDefaultBranchOnly) {
+            const tempBranch = (_a = github.context.payload) === null || _a === void 0 ? void 0 : _a.ref.split('/');
+            core.debug(tempBranch);
+            const currentBranch = tempBranch[tempBranch.length - 1];
+            core.debug(currentBranch);
+            if (((_b = github.context.payload.repository) === null || _b === void 0 ? void 0 : _b.default_branch) === currentBranch) {
+                apply = true;
+            }
+        }
+        else {
+            apply = true;
+        }
+    }
+    return apply;
+}
+//I can't get the typings to work so ... I beg forgiveness
+function addComment(issue_number, premessage, message, github_token, context, // eslint-disable-line @typescript-eslint/no-explicit-any
+isClosed) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             core.debug('Add Comment');
@@ -130,7 +181,7 @@ function addComment(issue_number, message, github_token, context, isClosed) {
             const octokit = github.getOctokit(github_token);
             core.debug(`owner: ${context.repo.owner}`);
             core.debug(`repo: ${context.repo.repo}`);
-            const formattedMessage = `\`\`\`${message}\`\`\``;
+            const formattedMessage = `${premessage}\`\`\`${message}\`\`\``;
             if (isClosed) {
                 yield octokit.pulls.createReview({
                     owner: github.context.repo.owner,
@@ -148,7 +199,7 @@ function addComment(issue_number, message, github_token, context, isClosed) {
                     issue_number
                 });
             }
-            core.debug(`Message Added`);
+            core.debug(`Message Added ${message}`);
         }
         catch (error) {
             core.setFailed(error.message);
