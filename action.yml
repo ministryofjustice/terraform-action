@@ -2,6 +2,10 @@ name: 'Terraform Action'
 description: 'Validate, Plan and Deploy Terraform Code'
 author: 'Ministry Of Justice'
 inputs:
+  apply-on-default-branch-only:
+    required: false
+    default: 'true'
+    description: If this flag is set to false it will run terraform apply on any branch, if it's true only on the default branch, normally main/master
   github-token:
     required: false
     description: 'Github Token should just generally be secrets.GITHUB_TOKEN'

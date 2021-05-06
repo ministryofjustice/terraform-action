@@ -19,6 +19,8 @@ $ npm run build && npm run package
 
 You can now make changes to the code in src
 
+There is a github toolkit that can be used in any action, see details [here](https://github.com/actions/toolkit)
+
 ## Testing
 
 You can test the action with [nektos/act](https://github.com/nektos/act)

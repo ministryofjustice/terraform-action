@@ -44,6 +44,7 @@ function run() {
         const workingDirectory = core.getInput('working-directory');
         const validate = core.getInput('validate').toLocaleLowerCase() === 'true';
         const githubToken = core.getInput('github-token');
+        const applyOnDefaultBranchOnly = core.getInput('apply-on-default-branch-only').toLocaleLowerCase() === 'true';
         let comment = core.getInput('terraform-output-as-comment').toLocaleLowerCase() === 'true';
         let output = '';
         let errorOutput = '';
@@ -51,6 +52,7 @@ function run() {
         const terraformPath = yield io.which('terraform', true);
         try {
             const issue_number = getIssueNumber();
+            const apply = checkApply(applyOnDefaultBranchOnly);
             const options = {};
             options.listeners = {
                 stdout: (data) => {
@@ -89,7 +91,7 @@ function run() {
                 yield addComment(issue_number, premessage, output, githubToken, github.context, false);
             }
             output = '';
-            if (github.context.eventName === 'push' || github.context.eventName === 'workflow_dispatch' || github.context.eventName === 'repository_dispatch') {
+            if (apply) {
                 core.info('Apply Terraform');
                 yield exec.exec(terraformPath, ['apply', 'plan', '-no-color'], options);
                 if (comment) {
@@ -103,44 +105,69 @@ function run() {
             core.error(errorOutput);
             core.setFailed(error.message);
         }
-        //issue with the typings forces reliance on global object, which is probably ok here. Hey, that's my story and I'm sticking to it
-        function getIssueNumber() {
-            var _a, _b, _c, _d;
-            let issue_number;
-            core.debug(`Event Name: ${github.context.eventName}`);
-            //The event when the pr is merged is actually push to the branch you are merging with, generally main/master˝
-            if (github.context.eventName === 'pull_request' || github.context.eventName === 'push') {
-                if (((_a = github.context.payload) === null || _a === void 0 ? void 0 : _a.pull_request) != null) {
-                    if (core.isDebug()) {
-                        core.debug('Get Issue Number off pull request payload');
-                        core.debug(JSON.stringify(github.context.payload));
-                    }
-                    issue_number = (_b = github.context.payload.pull_request) === null || _b === void 0 ? void 0 : _b.number;
-                }
-                else if (((_c = github.context.payload) === null || _c === void 0 ? void 0 : _c.issue) != null) {
-                    if (core.isDebug()) {
-                        core.debug('Get Issue Number off issue payload');
-                        core.debug(JSON.stringify(github.context.payload));
-                    }
-                    issue_number = (_d = github.context.payload.issue) === null || _d === void 0 ? void 0 : _d.number;
-                }
-                if (!issue_number) {
-                    if (core.isDebug()) {
-                        core.debug(`No issue number trying regex of head commit message: ${github.context.payload.head_commit.message}`);
-                        core.debug(JSON.stringify(github.context.payload));
-                    }
-                    const matches = github.context.payload.head_commit.message.match(/(?<=#)\d+/g);
-                    if (matches) {
-                        issue_number = parseInt(matches[0]);
-                    }
-                }
-                core.debug(`Issue Number: ${issue_number}`);
-            }
-            return issue_number;
-        }
     });
 }
 run();
+//issue with the typings forces reliance on global object, which is probably ok here. Hey, that's my story and I'm sticking to it
+function getIssueNumber() {
+    var _a, _b, _c, _d;
+    let issue_number;
+    core.debug(`Event Name: ${github.context.eventName}`);
+    //The event when the pr is merged is actually push to the branch you are merging with, generally main/master˝
+    if (github.context.eventName === 'pull_request' || github.context.eventName === 'push') {
+        if (((_a = github.context.payload) === null || _a === void 0 ? void 0 : _a.pull_request) != null) {
+            if (core.isDebug()) {
+                core.debug('Get Issue Number off pull request payload');
+                core.debug(JSON.stringify(github.context.payload));
+            }
+            issue_number = (_b = github.context.payload.pull_request) === null || _b === void 0 ? void 0 : _b.number;
+        }
+        else if (((_c = github.context.payload) === null || _c === void 0 ? void 0 : _c.issue) != null) {
+            if (core.isDebug()) {
+                core.debug('Get Issue Number off issue payload');
+                core.debug(JSON.stringify(github.context.payload));
+            }
+            issue_number = (_d = github.context.payload.issue) === null || _d === void 0 ? void 0 : _d.number;
+        }
+        if (!issue_number) {
+            if (core.isDebug()) {
+                core.debug(`No issue number trying regex of head commit message: ${github.context.payload.head_commit.message}`);
+                core.debug(JSON.stringify(github.context.payload));
+            }
+            const matches = github.context.payload.head_commit.message.match(/(?<=#)\d+/g);
+            if (matches) {
+                issue_number = parseInt(matches[0]);
+            }
+        }
+        core.debug(`Issue Number: ${issue_number}`);
+    }
+    return issue_number;
+}
+//We only ever want to apply on push, workflow and repository dispatch, which have a ref field on the payload of form refs/head/branchname
+//We need to check then whether we're on the right branch to apply depending on applyOnDefaultBranch
+function checkApply(applyOnDefaultBranchOnly) {
+    var _a;
+    let apply = false;
+    if (!(github.context.eventName === 'push' || github.context.eventName === 'workflow_dispatch' || github.context.eventName === 'repository_dispatch')) {
+        if (core.isDebug()) {
+            core.debug('Checking whether we should apply or not');
+            core.debug(JSON.stringify(github.context.payload));
+        }
+        if (applyOnDefaultBranchOnly) {
+            const tempBranch = github.context.payload.ref.split('/');
+            core.debug(tempBranch);
+            const currentBranch = tempBranch[tempBranch.length - 1];
+            core.debug(currentBranch);
+            if (((_a = github.context.payload.repository) === null || _a === void 0 ? void 0 : _a.default_branch) === currentBranch) {
+                apply = true;
+            }
+        }
+        else {
+            apply = true;
+        }
+    }
+    return apply;
+}
 //I can't get the typings to work so ... I beg forgiveness
 function addComment(issue_number, premessage, message, github_token, context, // eslint-disable-line @typescript-eslint/no-explicit-any
 isClosed) {
