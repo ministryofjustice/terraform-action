@@ -18,8 +18,8 @@ async function run(): Promise<void> {
 
   try {
     const issue_number: number | undefined = getIssueNumber()
-
-    const apply = checkApply(applyOnDefaultBranchOnly)
+    //repository dispatch always happens on the main branch so no need for further checks
+    const apply = github.context.eventName === 'repository_dispatch' ? true : checkApply(applyOnDefaultBranchOnly)
 
     const options: exec.ExecOptions = {}
 
@@ -132,7 +132,7 @@ function getIssueNumber(): number | undefined {
 function checkApply(applyOnDefaultBranchOnly: boolean): boolean {
   let apply = false
 
-  if ((github.context.eventName === 'push' || github.context.eventName === 'workflow_dispatch' || github.context.eventName === 'repository_dispatch')) {
+  if (github.context.eventName === 'push' || github.context.eventName === 'workflow_dispatch') {
     if (core.isDebug()) {
       core.debug('Checking whether we should apply or not')
       core.debug(JSON.stringify(github.context.payload))
