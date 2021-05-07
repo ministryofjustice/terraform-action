@@ -14,11 +14,23 @@ jobs:
       - run: npm install
       - run: npm run all
   automate-pullrequest-review:
-    if:  github.actor == 'dependabot[bot]' || github.actor == 'dependabot-preview[bot]'
+    if: (github.actor == 'dependabot[bot]' || github.actor == 'dependabot-preview[bot]')
     runs-on: ubuntu-latest
     needs: build
     steps:
-      - name: Approve pull request
-        uses: hmarr/auto-approve-action@5d04a5ca6da9aeb8ca9f31a5239b96fc3e003029
+      - name: automerge
+        uses: actions/github-script@0.2.0
         with:
-          github-token: "${{ secrets.GITHUB_TOKEN }}"
+          script: |
+            github.pullRequests.createReview({
+              owner: context.payload.repository.owner.login,
+              repo: context.payload.repository.name,
+              pull_number: context.payload.pull_request.number,
+              event: 'APPROVE'
+            })
+            github.pullRequests.merge({
+              owner: context.payload.repository.owner.login,
+              repo: context.payload.repository.name,
+              pull_number: context.payload.pull_request.number
+            })
+          github-token: ${{github.token}}
