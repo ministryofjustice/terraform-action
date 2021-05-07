@@ -1,6 +1,9 @@
-name: 'Terraform Action'
+name: 'Digital Studio Operations Terraform Action'
 description: 'Validate, Plan and Deploy Terraform Code'
 author: 'Ministry Of Justice'
+branding:
+  icon: 'wind'
+  color: 'blue'
 inputs:
   apply-on-default-branch-only:
     required: false
