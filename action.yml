@@ -9,6 +9,10 @@ inputs:
     required: false
     default: 'true'
     description: If this flag is set to false it will run terraform apply on any branch, if it's true only on the default branch, normally main/master
+  apply-on-pull-request:
+    required: false
+    default: 'false'
+    description: If this flag is set to true it will run terraform apply on the pull_request event, e.g. if you want to the run tests on the deployed infra
   github-token:
     required: false
     description: 'Github Token should just generally be secrets.GITHUB_TOKEN'
