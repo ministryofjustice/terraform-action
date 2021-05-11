@@ -46,9 +46,9 @@ These are the options recommended to be changed. For more detailed explanation o
 
 | Setting      | Description                                                                                | Default Value |
 | ------------ | ------------------------------------------------------------------------------------------ | ------------------------------------------------ |
-| `apply-on-default-branch-only` |Terraform apply will only be run on the default branch of the repo. | true |
-| `apply-on-pull-request` | Terraform apply will run on pull request, note that if this is set to true, it will ignore apply-on-default-branch-only. | false |
-| `github-token` | The personal access token, should use `${{ secrets.GITHUB_TOKEN }}` .| N/A |
-| `terraform-output-as-comment` | The output from terraform plan and apply will be added to the PR as a comment.| true |
-| `validate` | run terraform validate before running the terraform incantation | true |
+| `apply-on-default-branch-only` |if true, `terraform apply` will only be run on the default branch of the repo. | true |
+| `apply-on-pull-request` | if true, `terraform apply` will run on pull requests too. | false |
+| `github-token` | The personal access token, `${{ secrets.GITHUB_TOKEN }}` should be enough.| N/A |
+| `terraform-output-as-comment` | if true, the output from terraform plan and apply will be added to the PR as a comment.| true |
+| `validate` | If true, `terraform validate` is run before running the terraform incantation | true |
 | `working-directory` | Directory where the terraform code is | Root of repository |
