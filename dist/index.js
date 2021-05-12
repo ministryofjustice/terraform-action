@@ -45,6 +45,7 @@ function run() {
         const validate = core.getInput('validate').toLocaleLowerCase() === 'true';
         const githubToken = core.getInput('github-token');
         const applyOnDefaultBranchOnly = core.getInput('apply-on-default-branch-only').toLocaleLowerCase() === 'true';
+        const applyOnPullRequest = core.getInput('apply-on-pull-request').toLocaleLowerCase() === 'true';
         let comment = core.getInput('terraform-output-as-comment').toLocaleLowerCase() === 'true';
         let output = '';
         let errorOutput = '';
@@ -53,7 +54,7 @@ function run() {
         try {
             const issue_number = getIssueNumber();
             //repository dispatch always happens on the main branch so no need for further checks
-            const apply = github.context.eventName === 'repository_dispatch' ? true : checkApply(applyOnDefaultBranchOnly);
+            const apply = github.context.eventName === 'repository_dispatch' ? true : checkApply(applyOnDefaultBranchOnly, applyOnPullRequest);
             const options = {};
             options.listeners = {
                 stdout: (data) => {
@@ -144,11 +145,15 @@ function getIssueNumber() {
     }
     return issue_number;
 }
-//We only ever want to apply on push, workflow and repository dispatch, which have a ref field on the payload of form refs/head/branchname
+//We want to apply on push and workflow, which have a ref field on the payload of form refs/head/branchname
 //We need to check then whether we're on the right branch to apply depending on applyOnDefaultBranch
-function checkApply(applyOnDefaultBranchOnly) {
+//Pull Request is a special case, if we have apply-on-pull-request set to true, it will apply.
+function checkApply(applyOnDefaultBranchOnly, applyOnPullRequest) {
     var _a, _b;
     let apply = false;
+    if (github.context.eventName === 'pull_request') {
+        return applyOnPullRequest;
+    }
     if (github.context.eventName === 'push' || github.context.eventName === 'workflow_dispatch') {
         if (core.isDebug()) {
             core.debug('Checking whether we should apply or not');
