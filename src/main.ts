@@ -4,12 +4,13 @@ import * as github from '@actions/github'
 import * as io from '@actions/io'
 
 async function run(): Promise<void> {
-  const workingDirectory: string = core.getInput('working-directory')
-  const validate: boolean = core.getInput('validate').toLocaleLowerCase() === 'true'
-  const githubToken: string | undefined = core.getInput('github-token')
   const applyOnDefaultBranchOnly: boolean = core.getInput('apply-on-default-branch-only').toLocaleLowerCase() === 'true'
   const applyOnPullRequest: boolean = core.getInput('apply-on-pull-request').toLocaleLowerCase() === 'true'
   let comment: boolean = core.getInput('terraform-output-as-comment').toLocaleLowerCase() === 'true'
+  const githubToken: string | undefined = core.getInput('github-token')
+  const detectDrift: boolean = core.getInput('detect-drift').toLocaleLowerCase() === 'true'
+  const validate: boolean = core.getInput('validate').toLocaleLowerCase() === 'true'
+  const workingDirectory: string = core.getInput('working-directory')
 
   let output = ''
   let errorOutput = ''
@@ -59,7 +60,18 @@ async function run(): Promise<void> {
 
     output = ''
     core.info('Run Terraform Plan')
-    await exec.exec(terraformPath, ['plan', '-refresh=false', '-no-color', '-out=plan'], options)
+
+    //if detectDrift is on, ignoreReturnCode for terraform plan will be set to true
+    //so that a plan that has drifted, which returns with exit code 2 doesn't terminate the action.
+    if (detectDrift) {
+      options.ignoreReturnCode = true
+    }
+
+    const returnCode: number = await exec.exec(terraformPath, ['plan', '-refresh=false', '-no-color', '-out=plan'], options)
+
+    core.setOutput('terraform-plan-return-code', returnCode)
+
+    options.ignoreReturnCode = false
 
     if (comment) {
       core.info('Add Plan Output as a Comment to PR')

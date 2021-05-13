@@ -41,12 +41,13 @@ const github = __importStar(__nccwpck_require__(5438));
 const io = __importStar(__nccwpck_require__(7436));
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
-        const workingDirectory = core.getInput('working-directory');
-        const validate = core.getInput('validate').toLocaleLowerCase() === 'true';
-        const githubToken = core.getInput('github-token');
         const applyOnDefaultBranchOnly = core.getInput('apply-on-default-branch-only').toLocaleLowerCase() === 'true';
         const applyOnPullRequest = core.getInput('apply-on-pull-request').toLocaleLowerCase() === 'true';
         let comment = core.getInput('terraform-output-as-comment').toLocaleLowerCase() === 'true';
+        const githubToken = core.getInput('github-token');
+        const detectDrift = core.getInput('detect-drift').toLocaleLowerCase() === 'true';
+        const validate = core.getInput('validate').toLocaleLowerCase() === 'true';
+        const workingDirectory = core.getInput('working-directory');
         let output = '';
         let errorOutput = '';
         let premessage = '';
@@ -84,7 +85,13 @@ function run() {
             yield exec.exec(terraformPath, ['refresh'], options);
             output = '';
             core.info('Run Terraform Plan');
-            yield exec.exec(terraformPath, ['plan', '-refresh=false', '-no-color', '-out=plan'], options);
+            //if detectDrift is on, ignoreReturnCode for terraform plan will be set to true
+            if (detectDrift) {
+                options.ignoreReturnCode = true;
+            }
+            const returnCode = yield exec.exec(terraformPath, ['plan', '-refresh=false', '-no-color', '-out=plan'], options);
+            core.setOutput("terraform-plan-return-code", returnCode);
+            options.ignoreReturnCode = false;
             if (comment) {
                 core.info('Add Plan Output as a Comment to PR');
                 if (github.context.eventName === 'push') {
