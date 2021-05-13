@@ -64,13 +64,20 @@ async function run(): Promise<void> {
 
     //if detectDrift is on, ignoreReturnCode for terraform plan will be set to true
     //so that a plan that has drifted, which returns with exit code 2 doesn't terminate the action.
+    const planCommand: string[] = ['plan', '-refresh=false', '-no-color', '-out=plan']
+
     if (detectDrift) {
       options.ignoreReturnCode = true
+      planCommand.push('-detailed-exit-code')
     }
 
-    const returnCode: number = await exec.exec(terraformPath, ['plan', '-refresh=false', '-no-color', '-out=plan'], options)
+    const returnCode: number = await exec.exec(terraformPath, planCommand, options)
 
-    core.setOutput('terraform-plan-return-code', returnCode)
+    if (returnCode === 1) {
+      core.setFailed(`Terraform plan returned an exit code of 1, which indicates failure.\nOutput from Terraform:\n${output}`)
+    }
+
+    core.setOutput('terraform-plan-exit-code', returnCode)
 
     options.ignoreReturnCode = false
 

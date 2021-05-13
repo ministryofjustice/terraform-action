@@ -87,11 +87,16 @@ function run() {
             core.info('Run Terraform Plan');
             //if detectDrift is on, ignoreReturnCode for terraform plan will be set to true
             //so that a plan that has drifted, which returns with exit code 2 doesn't terminate the action.
+            const planCommand = ['plan', '-refresh=false', '-no-color', '-out=plan'];
             if (detectDrift) {
                 options.ignoreReturnCode = true;
+                planCommand.push('-detailed-exit-code');
             }
-            const returnCode = yield exec.exec(terraformPath, ['plan', '-refresh=false', '-no-color', '-out=plan'], options);
-            core.setOutput('terraform-plan-return-code', returnCode);
+            const returnCode = yield exec.exec(terraformPath, planCommand, options);
+            if (returnCode === 1) {
+                core.setFailed(`Terraform plan returned an exit code of 1, which indicates failure.\nOutput from Terraform:\n${output}`);
+            }
+            core.setOutput('terraform-plan-exit-code', returnCode);
             options.ignoreReturnCode = false;
             if (comment) {
                 core.info('Add Plan Output as a Comment to PR');
