@@ -74,7 +74,7 @@ async function run(): Promise<void> {
 
     if (detectDrift) {
       options.ignoreReturnCode = true
-      planCommand.push('-detailed-exit-code')
+      planCommand.push('-detailed-exitcode')
     }
 
     const returnCode: number = await exec.exec(terraformPath, planCommand, options)

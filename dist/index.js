@@ -95,7 +95,7 @@ function run() {
             const planCommand = ['plan', '-refresh=false', '-no-color', '-out=plan'];
             if (detectDrift) {
                 options.ignoreReturnCode = true;
-                planCommand.push('-detailed-exit-code');
+                planCommand.push('-detailed-exitcode');
             }
             const returnCode = yield exec.exec(terraformPath, planCommand, options);
             if (returnCode === 1) {

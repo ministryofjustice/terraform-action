@@ -48,7 +48,7 @@ These are the options recommended to be changed. For more detailed explanation o
 | ------------ | ------------------------------------------------------------------------------------------ | ------------------------------------------------ |
 | `apply-on-default-branch-only` |if true, `terraform apply` will only be run on the default branch of the repo. | true |
 | `apply-on-pull-request` | if true, `terraform apply` will run on pull requests too. | false |
-| `detect-drift` | If this flag is set to true `terraform plan` will run with -detailed-exit-code flag on, which can be used to detect drift. | false |
+| `detect-drift` | If this flag is set to true `terraform plan` will run with `-detailed-exitcode` flag on, which can be used to detect drift. | false |
 | `github-token` | The personal access token, `${{ secrets.GITHUB_TOKEN }}` should be enough.| N/A |
 | `terraform-output-as-comment` | if true, the output from terraform plan and apply will be added to the PR as a comment.| true |
 | `upgrade-on-init` | If set to true, the `terraform init` command will run with -upgrade flag | false |
