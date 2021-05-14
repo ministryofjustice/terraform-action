@@ -51,6 +51,7 @@ These are the options recommended to be changed. For more detailed explanation o
 | `detect-drift` | If this flag is set to true `terraform plan` will run with -detailed-exit-code flag on, which can be used to detect drift. | false |
 | `github-token` | The personal access token, `${{ secrets.GITHUB_TOKEN }}` should be enough.| N/A |
 | `terraform-output-as-comment` | if true, the output from terraform plan and apply will be added to the PR as a comment.| true |
+| `upgrade-on-init` | If set to true, the `terraform init` command will run with -upgrade flag | false |
 | `validate` | If true, `terraform validate` is run before running the terraform incantation | true |
 | `working-directory` | Directory where the terraform code is | Root of repository |
 

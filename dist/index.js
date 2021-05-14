@@ -43,9 +43,10 @@ function run() {
     return __awaiter(this, void 0, void 0, function* () {
         const applyOnDefaultBranchOnly = core.getInput('apply-on-default-branch-only').toLocaleLowerCase() === 'true';
         const applyOnPullRequest = core.getInput('apply-on-pull-request').toLocaleLowerCase() === 'true';
-        let comment = core.getInput('terraform-output-as-comment').toLocaleLowerCase() === 'true';
-        const githubToken = core.getInput('github-token');
         const detectDrift = core.getInput('detect-drift').toLocaleLowerCase() === 'true';
+        const githubToken = core.getInput('github-token');
+        let comment = core.getInput('terraform-output-as-comment').toLocaleLowerCase() === 'true';
+        const upgradeOnInit = core.getInput('upgrade-on-init').toLocaleLowerCase() === 'true';
         const validate = core.getInput('validate').toLocaleLowerCase() === 'true';
         const workingDirectory = core.getInput('working-directory');
         let output = '';
@@ -75,8 +76,12 @@ function run() {
                 }
             }
             //Start of Incantation
+            const initCommand = ['init'];
+            if (upgradeOnInit) {
+                initCommand.push('-upgrade');
+            }
             core.info('Initialize Terraform');
-            yield exec.exec(terraformPath, ['init'], options);
+            yield exec.exec(terraformPath, initCommand, options);
             if (validate) {
                 core.info('Validate Terraform Code');
                 yield exec.exec(terraformPath, ['validate'], options);

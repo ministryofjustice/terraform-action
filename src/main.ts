@@ -7,9 +7,10 @@ import * as io from '@actions/io'
 async function run(): Promise<void> {
   const applyOnDefaultBranchOnly: boolean = core.getInput('apply-on-default-branch-only').toLocaleLowerCase() === 'true'
   const applyOnPullRequest: boolean = core.getInput('apply-on-pull-request').toLocaleLowerCase() === 'true'
-  let comment: boolean = core.getInput('terraform-output-as-comment').toLocaleLowerCase() === 'true'
-  const githubToken: string | undefined = core.getInput('github-token')
   const detectDrift: boolean = core.getInput('detect-drift').toLocaleLowerCase() === 'true'
+  const githubToken: string | undefined = core.getInput('github-token')
+  let comment: boolean = core.getInput('terraform-output-as-comment').toLocaleLowerCase() === 'true'
+  const upgradeOnInit: boolean = core.getInput('upgrade-on-init').toLocaleLowerCase() === 'true'
   const validate: boolean = core.getInput('validate').toLocaleLowerCase() === 'true'
   const workingDirectory: string = core.getInput('working-directory')
 
@@ -48,8 +49,13 @@ async function run(): Promise<void> {
 
     //Start of Incantation
 
+    const initCommand: string[] = ['init']
+    if (upgradeOnInit) {
+      initCommand.push('-upgrade')
+    }
+
     core.info('Initialize Terraform')
-    await exec.exec(terraformPath, ['init'], options)
+    await exec.exec(terraformPath, initCommand, options)
 
     if (validate) {
       core.info('Validate Terraform Code')

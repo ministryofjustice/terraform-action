@@ -24,6 +24,10 @@ inputs:
     required: false
     default: 'true'
     description: 'If set to true, the plan and apply outputs will be added as a comment to the pr'
+  upgrade-on-init:
+    required: false
+    default: 'false'
+    description: 'If set to true, the terraform init will run with -upgrade flag'
   validate:
     required: false
     default: 'true'
