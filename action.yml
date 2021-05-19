@@ -13,6 +13,10 @@ inputs:
     required: false
     default: 'false'
     description: If this flag is set to true it will run terraform apply on the pull_request event, e.g. if you want to the run tests on the deployed infra
+  detect-drift:
+    required: false
+    default: 'false'
+    description: If this flag is set to true the terraform plan can have drift, which normally would return an exit code of 2, thus causing the action to fail.
   github-token:
     required: false
     description: 'Github Token should just generally be secrets.GITHUB_TOKEN'
@@ -20,6 +24,10 @@ inputs:
     required: false
     default: 'true'
     description: 'If set to true, the plan and apply outputs will be added as a comment to the pr'
+  upgrade-on-init:
+    required: false
+    default: 'false'
+    description: 'If set to true, the terraform init will run with -upgrade flag'
   validate:
     required: false
     default: 'true'
@@ -27,6 +35,9 @@ inputs:
   working-directory:
     required: false
     description: 'Directory for the Terraform files, if not specified it will run from current directory'
+outputs:
+  terraform-plan-exit-code:
+    description: This is the output of the terraform plan command. Only set if detect-drift is set to true
 runs:
   using: 'node12'
   main: 'dist/index.js'
