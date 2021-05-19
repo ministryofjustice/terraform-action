@@ -22,8 +22,11 @@ async function run(): Promise<void> {
 
   try {
     const issue_number: number | undefined = getIssueNumber(github.context)
-    //repository dispatch always happens on the main branch so no need for further checks
-    const apply = github.context.eventName === 'repository_dispatch' ? true : checkApply(github.context, applyOnDefaultBranchOnly, applyOnPullRequest)
+    //repository dispatch and schedule always happens on the main branch so no need for further checks
+    // prettier-ignore
+    const apply = github.context.eventName === 'repository_dispatch' || github.context.eventName === "schedule" ?
+      true :
+      checkApply(github.context, applyOnDefaultBranchOnly, applyOnPullRequest)
 
     const options: exec.ExecOptions = {}
 
@@ -96,7 +99,7 @@ async function run(): Promise<void> {
     }
 
     output = ''
-    if (apply) {
+    if (apply && returnCode === 0) {
       core.info('Apply Terraform')
       await exec.exec(terraformPath, ['apply', 'plan', '-no-color'], options)
 

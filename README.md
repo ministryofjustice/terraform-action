@@ -61,3 +61,9 @@ These are the options recommended to be changed. For more detailed explanation o
 | Output      | Description                                                                                 |
 | ------------ | ------------------------------------------------------------------------------------------ |
 |`terraform-plan-exit-code`| This is particularly useful when using `detect-drift` as the exit code will be set to 2 if there is drift |
+
+
+## Notes on Events
+
+
+Repository dispatch and schedule, at the time of writing, always run on the latest commit of the default branch. `terraform apply` will be run if the action is the action is running on one of these events and all previous commands, e.g. `terraform plan`, have been successful.

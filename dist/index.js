@@ -55,8 +55,11 @@ function run() {
         const terraformPath = yield io.which('terraform', true);
         try {
             const issue_number = getIssueNumber(github.context);
-            //repository dispatch always happens on the main branch so no need for further checks
-            const apply = github.context.eventName === 'repository_dispatch' ? true : checkApply(github.context, applyOnDefaultBranchOnly, applyOnPullRequest);
+            //repository dispatch and schedule always happens on the main branch so no need for further checks
+            // prettier-ignore
+            const apply = github.context.eventName === 'repository_dispatch' || github.context.eventName === "schedule" ?
+                true :
+                checkApply(github.context, applyOnDefaultBranchOnly, applyOnPullRequest);
             const options = {};
             options.listeners = {
                 stdout: (data) => {
@@ -111,7 +114,7 @@ function run() {
                 yield addComment(issue_number, premessage, output, githubToken, github.context, false);
             }
             output = '';
-            if (apply) {
+            if (apply && returnCode === 0) {
                 core.info('Apply Terraform');
                 yield exec.exec(terraformPath, ['apply', 'plan', '-no-color'], options);
                 if (comment) {
