@@ -52,6 +52,7 @@ function run() {
         let output = '';
         let errorOutput = '';
         let premessage = '';
+        const options = {};
         const terraformPath = yield io.which('terraform', true);
         try {
             const issue_number = getIssueNumber(github.context);
@@ -60,7 +61,6 @@ function run() {
             const apply = github.context.eventName === 'repository_dispatch' || github.context.eventName === "schedule" ?
                 true :
                 checkApply(github.context, applyOnDefaultBranchOnly, applyOnPullRequest);
-            const options = {};
             options.listeners = {
                 stdout: (data) => {
                     output += data.toString();
@@ -96,7 +96,8 @@ function run() {
             //if detectDrift is on, ignoreReturnCode for terraform plan will be set to true
             //so that a plan that has drifted, which returns with exit code 2 doesn't terminate the action.
             const planCommand = ['plan', '-refresh=false', '-no-color', '-out=plan'];
-            if (detectDrift) {
+            //I think we only want detect drift for schedule and, maybe, for workflow_dispatch
+            if (detectDrift && (github.context.eventName === 'schedule' || github.context.eventName === 'workflow_dispatch')) {
                 options.ignoreReturnCode = true;
                 planCommand.push('-detailed-exitcode');
             }
@@ -207,7 +208,7 @@ function addComment(issue_number, premessage, message, github_token, context, is
             core.debug(`repo: ${context.repo.repo}`);
             const formattedMessage = `${premessage}\`\`\`${message}\`\`\``;
             if (isClosed) {
-                yield octokit.pulls.createReview({
+                yield octokit.rest.pulls.createReview({
                     owner: context.repo.owner,
                     repo: context.repo.repo,
                     pull_number: issue_number,
@@ -216,7 +217,7 @@ function addComment(issue_number, premessage, message, github_token, context, is
                 });
             }
             else {
-                yield octokit.issues.createComment({
+                yield octokit.rest.issues.createComment({
                     owner: context.repo.owner,
                     repo: context.repo.repo,
                     body: formattedMessage,
@@ -432,6 +433,7 @@ exports.getInput = getInput;
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function setOutput(name, value) {
+    process.stdout.write(os.EOL);
     command_1.issueCommand('set-output', { name }, value);
 }
 exports.setOutput = setOutput;
@@ -1301,6 +1303,7 @@ class Context {
      * Hydrate the context from the environment
      */
     constructor() {
+        var _a, _b, _c;
         this.payload = {};
         if (process.env.GITHUB_EVENT_PATH) {
             if (fs_1.existsSync(process.env.GITHUB_EVENT_PATH)) {
@@ -1320,6 +1323,9 @@ class Context {
         this.job = process.env.GITHUB_JOB;
         this.runNumber = parseInt(process.env.GITHUB_RUN_NUMBER, 10);
         this.runId = parseInt(process.env.GITHUB_RUN_ID, 10);
+        this.apiUrl = (_a = process.env.GITHUB_API_URL) !== null && _a !== void 0 ? _a : `https://api.github.com`;
+        this.serverUrl = (_b = process.env.GITHUB_SERVER_URL) !== null && _b !== void 0 ? _b : `https://github.com`;
+        this.graphqlUrl = (_c = process.env.GITHUB_GRAPHQL_URL) !== null && _c !== void 0 ? _c : `https://api.github.com/graphql`;
     }
     get issue() {
         const payload = this.payload;
@@ -1364,7 +1370,7 @@ var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (
 var __importStar = (this && this.__importStar) || function (mod) {
     if (mod && mod.__esModule) return mod;
     var result = {};
-    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
     __setModuleDefault(result, mod);
     return result;
 };
@@ -1407,7 +1413,7 @@ var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (
 var __importStar = (this && this.__importStar) || function (mod) {
     if (mod && mod.__esModule) return mod;
     var result = {};
-    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
     __setModuleDefault(result, mod);
     return result;
 };
@@ -1457,7 +1463,7 @@ var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (
 var __importStar = (this && this.__importStar) || function (mod) {
     if (mod && mod.__esModule) return mod;
     var result = {};
-    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
     __setModuleDefault(result, mod);
     return result;
 };
@@ -4528,6 +4534,7 @@ const Endpoints = {
     getLatestRelease: ["GET /repos/{owner}/{repo}/releases/latest"],
     getPages: ["GET /repos/{owner}/{repo}/pages"],
     getPagesBuild: ["GET /repos/{owner}/{repo}/pages/builds/{build_id}"],
+    getPagesHealthCheck: ["GET /repos/{owner}/{repo}/pages/health"],
     getParticipationStats: ["GET /repos/{owner}/{repo}/stats/participation"],
     getPullRequestReviewProtection: ["GET /repos/{owner}/{repo}/branches/{branch}/protection/required_pull_request_reviews"],
     getPunchCardStats: ["GET /repos/{owner}/{repo}/stats/punch_card"],
@@ -4736,7 +4743,7 @@ const Endpoints = {
   }
 };
 
-const VERSION = "4.15.1";
+const VERSION = "5.1.1";
 
 function endpointsToMethods(octokit, endpointsMap) {
   const newMethods = {};
@@ -4821,12 +4828,20 @@ function decorate(octokit, scope, methodName, defaults, decorations) {
 
 function restEndpointMethods(octokit) {
   const api = endpointsToMethods(octokit, Endpoints);
+  return {
+    rest: api
+  };
+}
+restEndpointMethods.VERSION = VERSION;
+function legacyRestEndpointMethods(octokit) {
+  const api = endpointsToMethods(octokit, Endpoints);
   return _objectSpread2(_objectSpread2({}, api), {}, {
     rest: api
   });
 }
-restEndpointMethods.VERSION = VERSION;
+legacyRestEndpointMethods.VERSION = VERSION;
 
+exports.legacyRestEndpointMethods = legacyRestEndpointMethods;
 exports.restEndpointMethods = restEndpointMethods;
 //# sourceMappingURL=index.js.map
 
