@@ -17,7 +17,7 @@ async function run(): Promise<void> {
   let output = ''
   let errorOutput = ''
   let premessage = ''
-
+  const options: exec.ExecOptions = {}
   const terraformPath = await io.which('terraform', true)
 
   try {
@@ -27,8 +27,6 @@ async function run(): Promise<void> {
     const apply = github.context.eventName === 'repository_dispatch' || github.context.eventName === "schedule" ?
       true :
       checkApply(github.context, applyOnDefaultBranchOnly, applyOnPullRequest)
-
-    const options: exec.ExecOptions = {}
 
     options.listeners = {
       stdout: (data: Buffer) => {
@@ -75,7 +73,8 @@ async function run(): Promise<void> {
     //so that a plan that has drifted, which returns with exit code 2 doesn't terminate the action.
     const planCommand: string[] = ['plan', '-refresh=false', '-no-color', '-out=plan']
 
-    if (detectDrift) {
+    //I think we only want detect drift for schedule and, maybe, for workflow_dispatch
+    if (detectDrift && (github.context.eventName === 'schedule' || github.context.eventName === 'workflow_dispatch')) {
       options.ignoreReturnCode = true
       planCommand.push('-detailed-exitcode')
     }
@@ -210,7 +209,7 @@ async function addComment(
     const formattedMessage = `${premessage}\`\`\`${message}\`\`\``
 
     if (isClosed) {
-      await octokit.pulls.createReview({
+      await octokit.rest.pulls.createReview({
         owner: context.repo.owner,
         repo: context.repo.repo,
         pull_number: issue_number,
@@ -218,7 +217,7 @@ async function addComment(
         event: 'COMMENT'
       })
     } else {
-      await octokit.issues.createComment({
+      await octokit.rest.issues.createComment({
         owner: context.repo.owner,
         repo: context.repo.repo,
         body: formattedMessage,
