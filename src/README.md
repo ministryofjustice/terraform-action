@@ -56,6 +56,5 @@ $ act
 
 - Run terraform fmt and commit result if there are changes (note that this might prevent the status check pipeline from passing)
 - Turnstyle functionality, namely only allow one pipeline run at a time to avoid issues with locked files.
-- Return exitcode for plan to allow alerts to be triggered on drift
 - Sort out versioning and releases
 - Collapse old comments containing plan outputs (e.g. if the pipeline is run several times, there will be a bunch of comments each time)

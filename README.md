@@ -48,7 +48,22 @@ These are the options recommended to be changed. For more detailed explanation o
 | ------------ | ------------------------------------------------------------------------------------------ | ------------------------------------------------ |
 | `apply-on-default-branch-only` |if true, `terraform apply` will only be run on the default branch of the repo. | true |
 | `apply-on-pull-request` | if true, `terraform apply` will run on pull requests too. | false |
+| `detect-drift` | If this flag is set to true `terraform plan` will run with `-detailed-exitcode` flag on, which can be used to detect drift. | false |
 | `github-token` | The personal access token, `${{ secrets.GITHUB_TOKEN }}` should be enough.| N/A |
 | `terraform-output-as-comment` | if true, the output from terraform plan and apply will be added to the PR as a comment.| true |
+| `upgrade-on-init` | If set to true, the `terraform init` command will run with -upgrade flag | false |
 | `validate` | If true, `terraform validate` is run before running the terraform incantation | true |
 | `working-directory` | Directory where the terraform code is | Root of repository |
+
+
+## Outputs
+
+| Output      | Description                                                                                 |
+| ------------ | ------------------------------------------------------------------------------------------ |
+|`terraform-plan-exit-code`| This is particularly useful when using `detect-drift` as the exit code will be set to 2 if there is drift |
+
+
+## Notes on Events
+
+
+Repository dispatch and schedule, at the time of writing, always run on the latest commit of the default branch. `terraform apply` will be run if the action is the action is running on one of these events and all previous commands, e.g. `terraform plan`, have been successful.
