@@ -44,9 +44,9 @@ function run() {
         const applyOnDefaultBranchOnly = core.getInput('apply-on-default-branch-only').toLocaleLowerCase() === 'true';
         const applyOnPullRequest = core.getInput('apply-on-pull-request').toLocaleLowerCase() === 'true';
         let comment = core.getInput('terraform-output-as-comment').toLocaleLowerCase() === 'true';
+        let commentPrefix = core.getInput('comment-prefix');
         const detectDrift = core.getInput('detect-drift').toLocaleLowerCase() === 'true';
         const githubToken = core.getInput('github-token');
-        let messagePrefix = core.getInput('message-prefix');
         const upgradeOnInit = core.getInput('upgrade-on-init').toLocaleLowerCase() === 'true';
         const validate = core.getInput('validate').toLocaleLowerCase() === 'true';
         const workingDirectory = core.getInput('working-directory');
@@ -109,24 +109,24 @@ function run() {
             options.ignoreReturnCode = false;
             if (comment) {
                 core.info('Add Plan Output as a Comment to PR');
-                if (!messagePrefix) {
-                    messagePrefix = 'Output from Terraform plan';
+                if (!commentPrefix) {
+                    commentPrefix = 'Output from Terraform plan';
                 }
                 if (github.context.eventName === 'push') {
-                    messagePrefix += ' before Apply';
+                    commentPrefix += ' before Apply';
                 }
-                yield addComment(issue_number, messagePrefix, output, githubToken, github.context, false);
+                yield addComment(issue_number, commentPrefix, output, githubToken, github.context, false);
             }
             output = '';
             if (apply && returnCode === 0) {
                 core.info('Apply Terraform');
                 yield exec.exec(terraformPath, ['apply', 'plan', '-no-color'], options);
-                if (!messagePrefix) {
-                    messagePrefix = 'Output From Terraform Apply';
+                if (!commentPrefix) {
+                    commentPrefix = 'Output From Terraform Apply';
                 }
                 if (comment) {
                     core.info('Add Apply Output as a Comment to PR');
-                    yield addComment(issue_number, messagePrefix, output, githubToken, github.context, true);
+                    yield addComment(issue_number, commentPrefix, output, githubToken, github.context, true);
                 }
             }
             //Incantation completed, we have successfully summoned the terraform daemon.
@@ -213,9 +213,9 @@ function addComment(issue_number, prefix, message, github_token, context, isClos
             core.debug(`owner: ${context.repo.owner}`);
             core.debug(`repo: ${context.repo.repo}`);
             let formattedMessage = `${prefix}\n\`\`\`${message}\`\`\``;
-            //Github Comments have a limit of 16 bits so hence this.
+            //Github Comments have a limit of 65536 so hence this.
             if (formattedMessage.length >= 65535) {
-                //  The -16 at the end is is just in case I've got my sums wrong.
+                //  The -16 at the end is is just in case I've got my sums wrong :)
                 const warning = `The output of the operation is longer than the comment limit in Github, please look at the full plan in the action run: https://github.com/${context.repo.owner}/${context.repo.repo}/actions/run/${context.runNumber}`;
                 formattedMessage = `${warning}\n${prefix}\n\`\`\`${message.substring(0, 65535 - prefix.length - warning.length - 16)}\`\`\``;
             }

@@ -8,9 +8,9 @@ async function run(): Promise<void> {
   const applyOnDefaultBranchOnly: boolean = core.getInput('apply-on-default-branch-only').toLocaleLowerCase() === 'true'
   const applyOnPullRequest: boolean = core.getInput('apply-on-pull-request').toLocaleLowerCase() === 'true'
   let comment: boolean = core.getInput('terraform-output-as-comment').toLocaleLowerCase() === 'true'
+  let commentPrefix: string | undefined = core.getInput('comment-prefix')
   const detectDrift: boolean = core.getInput('detect-drift').toLocaleLowerCase() === 'true'
   const githubToken: string | undefined = core.getInput('github-token')
-  let messagePrefix: string | undefined = core.getInput('message-prefix')
   const upgradeOnInit: boolean = core.getInput('upgrade-on-init').toLocaleLowerCase() === 'true'
   const validate: boolean = core.getInput('validate').toLocaleLowerCase() === 'true'
   const workingDirectory: string = core.getInput('working-directory')
@@ -92,14 +92,14 @@ async function run(): Promise<void> {
     if (comment) {
       core.info('Add Plan Output as a Comment to PR')
 
-      if (!messagePrefix) {
-        messagePrefix = 'Output from Terraform plan'
+      if (!commentPrefix) {
+        commentPrefix = 'Output from Terraform plan'
       }
 
       if (github.context.eventName === 'push') {
-        messagePrefix += ' before Apply'
+        commentPrefix += ' before Apply'
       }
-      await addComment(issue_number, messagePrefix, output, githubToken, github.context, false)
+      await addComment(issue_number, commentPrefix, output, githubToken, github.context, false)
     }
 
     output = ''
@@ -107,13 +107,13 @@ async function run(): Promise<void> {
       core.info('Apply Terraform')
       await exec.exec(terraformPath, ['apply', 'plan', '-no-color'], options)
 
-      if (!messagePrefix) {
-        messagePrefix = 'Output From Terraform Apply'
+      if (!commentPrefix) {
+        commentPrefix = 'Output From Terraform Apply'
       }
 
       if (comment) {
         core.info('Add Apply Output as a Comment to PR')
-        await addComment(issue_number, messagePrefix, output, githubToken, github.context, true)
+        await addComment(issue_number, commentPrefix, output, githubToken, github.context, true)
       }
     }
 
@@ -216,9 +216,9 @@ async function addComment(
 
     let formattedMessage = `${prefix}\n\`\`\`${message}\`\`\``
 
-    //Github Comments have a limit of 16 bits so hence this.
+    //Github Comments have a limit of 65536 so hence this.
     if (formattedMessage.length >= 65535) {
-      //  The -16 at the end is is just in case I've got my sums wrong.
+      //  The -16 at the end is is just in case I've got my sums wrong :)
       const warning = `The output of the operation is longer than the comment limit in Github, please look at the full plan in the action run: https://github.com/${context.repo.owner}/${context.repo.repo}/actions/run/${context.runNumber}`
       formattedMessage = `${warning}\n${prefix}\n\`\`\`${message.substring(0, 65535 - prefix.length - warning.length - 16)}\`\`\``
     }
