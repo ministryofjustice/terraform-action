@@ -20,6 +20,9 @@ inputs:
   github-token:
     required: false
     description: 'Github Token should just generally be secrets.GITHUB_TOKEN'
+  message-prefix:
+    required: false
+    description: 'This message will be added to comments before the output of the terraform plan|apply'
   terraform-output-as-comment:
     required: false
     default: 'true'

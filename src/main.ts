@@ -7,16 +7,16 @@ import * as io from '@actions/io'
 async function run(): Promise<void> {
   const applyOnDefaultBranchOnly: boolean = core.getInput('apply-on-default-branch-only').toLocaleLowerCase() === 'true'
   const applyOnPullRequest: boolean = core.getInput('apply-on-pull-request').toLocaleLowerCase() === 'true'
+  let comment: boolean = core.getInput('terraform-output-as-comment').toLocaleLowerCase() === 'true'
   const detectDrift: boolean = core.getInput('detect-drift').toLocaleLowerCase() === 'true'
   const githubToken: string | undefined = core.getInput('github-token')
-  let comment: boolean = core.getInput('terraform-output-as-comment').toLocaleLowerCase() === 'true'
+  let messagePrefix: string | undefined = core.getInput('message-prefix')
   const upgradeOnInit: boolean = core.getInput('upgrade-on-init').toLocaleLowerCase() === 'true'
   const validate: boolean = core.getInput('validate').toLocaleLowerCase() === 'true'
   const workingDirectory: string = core.getInput('working-directory')
 
   let output = ''
   let errorOutput = ''
-  let premessage = ''
   const options: exec.ExecOptions = {}
   const terraformPath = await io.which('terraform', true)
 
@@ -91,10 +91,15 @@ async function run(): Promise<void> {
 
     if (comment) {
       core.info('Add Plan Output as a Comment to PR')
-      if (github.context.eventName === 'push') {
-        premessage = 'Output from Terraform plan before Apply\n'
+
+      if (!messagePrefix) {
+        messagePrefix = 'Output from Terraform plan'
       }
-      await addComment(issue_number, premessage, output, githubToken, github.context, false)
+
+      if (github.context.eventName === 'push') {
+        messagePrefix += ' before Apply'
+      }
+      await addComment(issue_number, messagePrefix, output, githubToken, github.context, false)
     }
 
     output = ''
@@ -102,9 +107,13 @@ async function run(): Promise<void> {
       core.info('Apply Terraform')
       await exec.exec(terraformPath, ['apply', 'plan', '-no-color'], options)
 
+      if (!messagePrefix) {
+        messagePrefix = 'Output From Terraform Apply'
+      }
+
       if (comment) {
         core.info('Add Apply Output as a Comment to PR')
-        await addComment(issue_number, 'Output From Terraform Apply\n', output, githubToken, github.context, true)
+        await addComment(issue_number, messagePrefix, output, githubToken, github.context, true)
       }
     }
 
@@ -188,7 +197,7 @@ function checkApply(context: Context, applyOnDefaultBranchOnly: boolean, applyOn
 
 async function addComment(
   issue_number: number | undefined,
-  premessage: string | undefined,
+  prefix: string,
   message: string,
   github_token: string,
   context: Context,
@@ -200,13 +209,19 @@ async function addComment(
     if (!issue_number) {
       return true
     }
-
     const octokit = github.getOctokit(github_token)
 
     core.debug(`owner: ${context.repo.owner}`)
     core.debug(`repo: ${context.repo.repo}`)
 
-    const formattedMessage = `${premessage}\`\`\`${message}\`\`\``
+    let formattedMessage = `${prefix}\n\`\`\`${message}\`\`\``
+
+    //Github Comments have a limit of 16 bits so hence this.
+    if (formattedMessage.length >= 65535) {
+      //  The -16 at the end is is just in case I've got my sums wrong.
+      const warning = `The output of the operation is longer than the comment limit in Github, please look at the full plan in the action run: https://github.com/${context.repo.owner}/${context.repo.repo}/actions/run/${context.runNumber}`
+      formattedMessage = `${warning}\n${prefix}\n\`\`\`${message.substring(0, 65535 - prefix.length - warning.length - 16)}\`\`\``
+    }
 
     if (isClosed) {
       await octokit.rest.pulls.createReview({

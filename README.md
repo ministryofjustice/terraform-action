@@ -50,6 +50,7 @@ These are the options recommended to be changed. For more detailed explanation o
 | `apply-on-pull-request` | if true, `terraform apply` will run on pull requests too. | false |
 | `detect-drift` | If this flag is set to true `terraform plan` will run with `-detailed-exitcode` flag on for schedule and workflow_dispatch triggered pipelines, which can be used to detect drift by looking at the outputs. | false |
 | `github-token` | The personal access token, `${{ secrets.GITHUB_TOKEN }}` should be enough.| N/A |
+| `message-prefix` | This will be added before the output of the `terraform plan` or `terraform apply operation` | it varies but something like `Output From Terraform (plan|apply)` |
 | `terraform-output-as-comment` | if true, the output from terraform plan and apply will be added to the PR as a comment.| true |
 | `upgrade-on-init` | If set to true, the `terraform init` command will run with -upgrade flag | false |
 | `validate` | If true, `terraform validate` is run before running the terraform incantation | true |
