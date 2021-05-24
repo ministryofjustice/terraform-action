@@ -216,7 +216,7 @@ function addComment(issue_number, prefix, message, github_token, context, isClos
             //Github Comments have a limit of 65536 so hence this.
             if (formattedMessage.length >= 65535) {
                 //  The -16 at the end is is just in case I've got my sums wrong :)
-                const warning = `The output of the operation is longer than the comment limit in Github, please look at the full plan in the action run: https://github.com/${context.repo.owner}/${context.repo.repo}/actions/run/${context.runNumber}`;
+                const warning = `The output of the operation is longer than the comment limit in Github, please look at the full plan in the action run:\nhttps://github.com/${context.repo.owner}/${context.repo.repo}/actions/run/${context.runId}`;
                 formattedMessage = `${warning}\n${prefix}\n\`\`\`${message.substring(0, 65535 - prefix.length - warning.length - 16)}\`\`\``;
             }
             if (isClosed) {
